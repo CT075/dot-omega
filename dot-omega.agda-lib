@@ -1,0 +1,3 @@
+name: dot-omega -- the DOT calculus with higher-kinded types
+depend: standard-library
+include: src/
