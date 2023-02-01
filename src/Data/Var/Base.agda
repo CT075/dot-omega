@@ -25,7 +25,13 @@ wk : ∀{n} → Var n → Var (suc n)
 wk (Bound n) = Bound (suc n)
 wk (Free x i) = Free x i
 
-record Subst {ℓ : Level} (T : Pred ℕ ℓ) : Set ℓ where
+data Op {ℓ : Level} (T : Pred ℕ ℓ) : ℕ → ℕ → Set ℓ where
+  Open : ∀{n} → String → Op T (suc n) n
+  Close : ∀{n} → String → Op T n (suc n)
+  Wk : ∀{n} → Op T n (suc n)
+  Bind : ∀{n} → T n → Op T (suc n) n
+
+record Apply {ℓ : Level} (T : Pred ℕ ℓ) : Set ℓ where
   field
     var : ∀{n} → Var n → T n
 
@@ -34,3 +40,8 @@ record Subst {ℓ : Level} (T : Pred ℕ ℓ) : Set ℓ where
   bind u (Bound (suc n)) = var (Bound n)
   bind u (Free x i) = var (Free x i)
 
+  apply : ∀{n m} → Op T n m → Var n → T m
+  apply (Open x) v = var (open' x v)
+  apply (Close x) v = var (close x v)
+  apply Wk v = var (wk v)
+  apply (Bind u) v = bind u v
