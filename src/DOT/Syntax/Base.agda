@@ -16,31 +16,31 @@ TypeLabel = DecSetoid.Carrier TypeL
 TermLabel = DecSetoid.Carrier TermL
 
 mutual
-  data Type (n : ℕ) : Set where
-    ⊤ : Type n                            -- top
-    ⊥ : Type n                            -- bottom
-    [_] : Decl n → Type n                 -- record
-    _∧_ : Type n → Type n → Type n        -- intersection
-    _∙_ : Var n → TypeLabel → Type n      -- type selection
-    μ : Type (suc n) → Type n             -- recursive types
-    ℿ : Type n → Type (suc n) → Type n    -- dependent function
+  data Type : Set where
+    ⊤ : Type                               -- top
+    ⊥ : Type                               -- bottom
+    [_] : Decl → Type                      -- record
+    _∧_ : Type → Type → Type               -- intersection
+    _∙_ : Var → TypeLabel → Type           -- type selection
+    μ : Type → Type                        -- recursive types
+    ℿ : Type → Type → Type                 -- dependent function
 
-  data Decl (n : ℕ) : Set where
-    [_∶_∙∙_] : TypeLabel → Type n → Type n → Decl n
-    [_∶_] : TermLabel → Type n → Decl n
+  data Decl : Set where
+    [_∶_∙∙_] : TypeLabel → Type → Type → Decl
+    [_∶_] : TermLabel → Type → Decl
 
 mutual
-  data Term (n : ℕ) : Set where
-    ` : Var n → Term n                    -- variables
-    V : Val n → Term n                    -- values
-    _∙_ : Var n → TermLabel → Term n      -- field selection
-    _⊡_ : Var n → Var n → Term n          -- application
-    let'_in'_ : Term n → Term (suc n) → Term n -- let-binding
+  data Term : Set where
+    ` : Var → Term                         -- variables
+    V : Val → Term                         -- values
+    _∙_ : Var → TermLabel → Term           -- field selection
+    _⊡_ : Var → Var → Term                 -- application
+    let'_in'_ : Term → Term → Term         -- let-binding
 
-  data Val (n : ℕ) : Set where
-    new : Type n → List (Defn n) → Val n  -- new object definitions
-    ƛ : Type n → Term (suc n) → Val n     -- lambdas
+  data Val : Set where
+    new : Type → List Defn → Val           -- new object definitions
+    ƛ : Type → Term → Val                  -- lambdas
 
-  data Defn (n : ℕ) : Set where
-    [ty_='_] : TypeLabel → Type n → Defn n
-    [tm_='_] : TermLabel → Term n → Defn n
+  data Defn : Set where
+    [ty_='_] : TypeLabel → Type → Defn
+    [tm_='_] : TermLabel → Term → Defn

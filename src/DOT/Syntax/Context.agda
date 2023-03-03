@@ -28,9 +28,7 @@ record Entry : Set where
   constructor E
   field
     name : Name
-    -- Types in the context can contain free variables, but they should be
-    -- fully opened.
-    typ : Type zero
+    typ : Type
 
 weaken : String → Entry → Entry
 weaken x (E y τ) = E (bump x y) τ
@@ -40,6 +38,6 @@ Ctx = List Entry
 empty : Ctx
 empty = []
 
-put : Ctx → String → Type zero → Ctx
+put : Ctx → String → Type → Ctx
 put xs x τ = (E (N x zero) τ) ∷ map (weaken x) xs
 
