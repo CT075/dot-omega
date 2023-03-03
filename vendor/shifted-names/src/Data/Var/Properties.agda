@@ -45,97 +45,127 @@ nested-if-same-cond-else false t1 {t2} t3 = refl
 
 open-close-id : ∀ x v → open' x (close x v) ≡ v
 open-close-id x (Bound n) = refl
-open-close-id x (Free y zero) = begin
-    open' x (close x (Free y zero))
+open-close-id x (Free (N y zero)) = begin
+    open' x (close x (Free (N y zero)))
   ≡⟨ refl ⟩
-    open' x (if x == y then Bound zero else Free y zero)
-  ≡⟨ push-function-into-if (open' x) (x == y) {Bound zero} {Free y zero} ⟩
-    (if x == y then open' x (Bound zero) else open' x (Free y zero))
+    open' x (lower Free (Bound zero) x (N y zero))
   ≡⟨ refl ⟩
-    (if x == y then Free x zero else (if x == y then Free y (suc zero) else Free y zero))
-  ≡⟨ nested-if-same-cond-else (x == y) (Free x zero) (Free y zero) ⟩
-    (if x == y then Free x zero else Free y zero)
-  ≡⟨ if-else-subst x y (λ x → Free x zero) (Free y zero) ⟩
-    (if x == y then Free y zero else Free y zero)
-  ≡⟨ if-both-branches (x == y) (Free y zero) ⟩
-    Free y zero
+    open' x (if x == y then Bound zero else Free (N y zero))
+  ≡⟨ push-function-into-if (open' x) (x == y) {Bound zero} {Free (N y zero)} ⟩
+    (if x == y then open' x (Bound zero) else open' x (Free (N y zero)))
+  ≡⟨ refl ⟩
+    (if x == y then Free (N x zero) else Free (bump x (N y zero)))
+  ≡⟨ refl ⟩
+    (if x == y then Free (N x zero) else Free (if x == y then N y (suc zero) else N y zero))
+  ≡⟨ cong
+       (λ t → if x == y then Free (N x zero) else t)
+       (push-function-into-if Free (x == y) {N y (suc zero)} {N y zero})
+   ⟩
+    (if x == y then Free (N x zero) else (if x == y then Free (N y (suc zero)) else Free (N y zero)))
+  ≡⟨ nested-if-same-cond-else (x == y) (Free (N x zero)) (Free (N y zero)) ⟩
+    (if x == y then Free (N x zero) else Free (N y zero))
+  ≡⟨ if-else-subst x y (λ x → Free (N x zero)) (Free (N y zero)) ⟩
+    (if x == y then Free (N y zero) else Free (N y zero))
+  ≡⟨ if-both-branches (x == y) (Free (N y zero)) ⟩
+    Free (N y zero)
   ∎
-open-close-id x (Free y (suc i)) = begin
-    open' x (close x (Free y (suc i)))
+open-close-id x (Free (N y (suc i))) = begin
+    open' x (close x (Free (N y (suc i))))
   ≡⟨ refl ⟩
-    open' x (if x == y then Free y i else Free y (suc i))
-  ≡⟨ push-function-into-if (open' x) (x == y) {Free y i} {Free y (suc i)} ⟩
-    (if x == y then open' x (Free y i) else open' x (Free y (suc i)))
+    open' x (if x == y then Free (N y i) else Free (N y (suc i)))
+  ≡⟨ push-function-into-if (open' x) (x == y) {Free (N y i)} {Free (N y (suc i))} ⟩
+    (if x == y then open' x (Free (N y i)) else open' x (Free (N y (suc i))))
   ≡⟨ refl ⟩
     (if x == y then
-      (if x == y then Free y (suc i) else Free y i)
+      Free (if x == y then (N y (suc i)) else (N y i))
     else
-      (if x == y then Free y (suc (suc i)) else Free y (suc i)))
+      open' x (Free (N y (suc i))))
+  ≡⟨ cong
+       (λ t → if x == y then t else open' x (Free (N y (suc i))))
+       (push-function-into-if Free (x == y) {N y (suc i)} {N y i})
+   ⟩
+    (if x == y then
+      (if x == y then Free (N y (suc i)) else Free (N y i))
+    else
+      open' x (Free (N y (suc i))))
+  ≡⟨ refl ⟩
+    (if x == y then
+      (if x == y then Free (N y (suc i)) else Free (N y i))
+    else
+      Free (if x == y then N y (suc (suc i)) else N y (suc i)))
+  ≡⟨ cong
+       (λ t → if x == y then (if x == y then Free (N y (suc i)) else Free (N y i)) else t)
+       (push-function-into-if Free (x == y) {N y (suc (suc i))} {N y (suc i)})
+   ⟩
+    (if x == y then
+      (if x == y then Free (N y (suc i)) else Free (N y i))
+    else
+      (if x == y then Free (N y (suc (suc i))) else Free (N y (suc i))))
   ≡⟨ nested-if-same-cond-if (x == y)
-       (Free y (suc i))
-       (if x == y then Free y (suc (suc i)) else Free y (suc i)) ⟩
-    (if x == y then Free y (suc i) else
-      (if x == y then Free y (suc (suc i)) else Free y (suc i)))
-  ≡⟨ nested-if-same-cond-else (x == y) (Free y (suc i)) (Free y (suc i)) ⟩
-    (if x == y then Free y (suc i) else Free y (suc i))
-  ≡⟨ if-both-branches (x == y) (Free y (suc i)) ⟩
-    Free y (suc i)
+       (Free (N y (suc i)))
+       (if x == y then Free (N y (suc (suc i))) else Free (N y (suc i))) ⟩
+    (if x == y then Free (N y (suc i)) else
+      (if x == y then Free (N y (suc (suc i))) else Free (N y (suc i))))
+  ≡⟨ nested-if-same-cond-else (x == y) (Free (N y (suc i))) (Free (N y (suc i))) ⟩
+    (if x == y then Free (N y (suc i)) else Free (N y (suc i)))
+  ≡⟨ if-both-branches (x == y) (Free (N y (suc i))) ⟩
+    Free (N y (suc i))
   ∎
 
 close-open-id : ∀ x v → close x (open' x v) ≡ v
 close-open-id x (Bound zero) = begin
     close x (open' x (Bound zero))
   ≡⟨ refl ⟩
-    close x (Free x zero)
+    close x (Free (N x zero))
   ≡⟨ refl ⟩
-    (if x == x then Bound zero else Free x zero)
-  ≡⟨ cong (λ c → if c then Bound zero else Free x zero) (==-refl x) ⟩
-    (if true then Bound zero else Free x zero)
+    (if x == x then Bound zero else Free (N x zero))
+  ≡⟨ cong (λ c → if c then Bound zero else Free (N x zero)) (==-refl x) ⟩
+    (if true then Bound zero else Free (N x zero))
   ≡⟨ refl ⟩
     Bound zero
   ∎
 close-open-id x (Bound (suc n)) = refl
-close-open-id x (Free y zero) = begin
-    close x (open' x (Free y zero))
+close-open-id x (Free (N y zero)) = begin
+    close x (open' x (Free (N y zero)))
   ≡⟨ refl ⟩
-    close x (if x == y then Free y (suc zero) else Free y zero)
-  ≡⟨ push-function-into-if (close x) (x == y) ⟩
-    (if x == y then close x (Free y (suc zero)) else close x (Free y zero))
+    close x (Free (if x == y then N y (suc zero) else N y zero))
+  ≡⟨ push-function-into-if (λ t → (close x (Free t))) (x == y) ⟩
+    (if x == y then close x (Free (N y (suc zero))) else close x (Free (N y zero)))
   ≡⟨ refl ⟩
     (if x == y then
-      (if x == y then Free y zero else Free y (suc zero))
+      (if x == y then Free (N y zero) else Free (N y (suc zero)))
     else
-      (if x == y then Bound zero else Free y zero))
+      (if x == y then Bound zero else Free (N y zero)))
   ≡⟨ nested-if-same-cond-if (x == y)
-       (Free y zero)
-       (if x == y then Bound zero else Free y zero) ⟩
-    (if x == y then Free y zero else
-      (if x == y then Bound zero else Free y zero))
-  ≡⟨ nested-if-same-cond-else (x == y) (Free y zero) (Free y zero) ⟩
-    (if x == y then Free y zero else Free y zero)
-  ≡⟨ if-both-branches (x == y) (Free y zero) ⟩
-    Free y zero
+       (Free (N y zero))
+       (if x == y then Bound zero else Free (N y zero)) ⟩
+    (if x == y then Free (N y zero) else
+      (if x == y then Bound zero else Free (N y zero)))
+  ≡⟨ nested-if-same-cond-else (x == y) (Free (N y zero)) (Free (N y zero)) ⟩
+    (if x == y then Free (N y zero) else Free (N y zero))
+  ≡⟨ if-both-branches (x == y) (Free (N y zero)) ⟩
+    Free (N y zero)
   ∎
-close-open-id x (Free y (suc i)) = begin
-    close x (open' x (Free y (suc i)))
+close-open-id x (Free (N y (suc i))) = begin
+    close x (open' x (Free (N y (suc i))))
   ≡⟨ refl ⟩
-    close x (if x == y then Free y (suc (suc i)) else Free y (suc i))
-  ≡⟨ push-function-into-if (close x) (x == y) ⟩
-    (if x == y then close x (Free y (suc (suc i))) else close x (Free y (suc i)))
+    close x (Free (if x == y then N y (suc (suc i)) else N y (suc i)))
+  ≡⟨ push-function-into-if (λ t → (close x (Free t))) (x == y) ⟩
+    (if x == y then close x (Free (N y (suc (suc i)))) else close x (Free (N y (suc i))))
   ≡⟨ refl ⟩
     (if x == y then
-      (if x == y then Free y (suc i) else Free y (suc (suc i)))
+      (if x == y then Free (N y (suc i)) else Free (N y (suc (suc i))))
     else
-      (if x == y then Free y i else Free y (suc i)))
+      (if x == y then Free (N y i) else Free (N y (suc i))))
   ≡⟨ nested-if-same-cond-if (x == y)
-       (Free y (suc i))
-       (if x == y then Free y i else Free y (suc i)) ⟩
-    (if x == y then Free y (suc i) else
-      (if x == y then Free y i else Free y (suc i)))
-  ≡⟨ nested-if-same-cond-else (x == y) (Free y (suc i)) (Free y (suc i)) ⟩
-    (if x == y then Free y (suc i) else Free y (suc i))
-  ≡⟨ if-both-branches (x == y) (Free y (suc i)) ⟩
-    Free y (suc i)
+       (Free (N y (suc i)))
+       (if x == y then Free (N y i) else Free (N y (suc i))) ⟩
+    (if x == y then Free (N y (suc i)) else
+      (if x == y then Free (N y i) else Free (N y (suc i))))
+  ≡⟨ nested-if-same-cond-else (x == y) (Free (N y (suc i))) (Free (N y (suc i))) ⟩
+    (if x == y then Free (N y (suc i)) else Free (N y (suc i)))
+  ≡⟨ if-both-branches (x == y) (Free (N y (suc i))) ⟩
+    Free (N y (suc i))
   ∎
 
 module _ {ℓ} (T : Set ℓ) (Ops : MakeOps T) where
@@ -143,4 +173,4 @@ module _ {ℓ} (T : Set ℓ) (Ops : MakeOps T) where
 
   bind-wk-id : ∀ u v → bind u (wk v) ≡ var v
   bind-wk-id u (Bound n) = refl
-  bind-wk-id u (Free x i) = refl
+  bind-wk-id u (Free name) = refl

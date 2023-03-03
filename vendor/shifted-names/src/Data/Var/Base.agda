@@ -6,6 +6,19 @@ open import Data.Bool using (if_then_else_)
 open import Level using (Level)
 open import Relation.Unary using (Pred)
 
+record Name : Set where
+  constructor N
+  field
+    name : String
+    index : ℕ
+
+bump : String → Name → Name
+bump x (N y i) = if x == y then N y (suc i) else N y i
+
+lower : ∀{T : Set} → (Name → T) → T → String → Name → T
+lower free bzero x (N y zero) = if x == y then bzero else free (N y zero)
+lower free bzero x (N y (suc i)) = if x == y then free (N y i) else free (N y (suc i))
+
 -- Shifted names are a variation on locally-nameless types, in which each name
 -- is annotated with an index marking how many times it's been shadowed.
 --
@@ -15,21 +28,20 @@ open import Relation.Unary using (Pred)
 -- repeated here, as it simplifies the operation definitions a lot.
 data Var : Set where
   Bound : ℕ → Var
-  Free : String → ℕ → Var
+  Free : Name → Var
 
 open' : String → Var → Var
-open' x (Bound zero) = Free x zero
+open' x (Bound zero) = Free (N x zero)
 open' x (Bound (suc n)) = Bound n
-open' x (Free y i) = if x == y then Free y (suc i) else Free y i
+open' x (Free name) = Free (bump x name)
 
 close : String → Var → Var
 close x (Bound n) = Bound (suc n)
-close x (Free y zero) = if x == y then Bound zero else Free y zero
-close x (Free y (suc n)) = if x == y then Free y n else Free y (suc n)
+close x (Free name) = lower Free (Bound zero) x name
 
 wk : Var → Var
 wk (Bound n) = Bound (suc n)
-wk (Free x i) = Free x i
+wk (Free name) = Free name
 
 data Op {ℓ : Level} (T : Set ℓ) : Set ℓ where
   Open : String → Op T
@@ -46,7 +58,7 @@ record MakeOps {ℓ : Level} (T : Set ℓ) : Set ℓ where
   bind : T → Var → T
   bind u (Bound zero) = u
   bind u (Bound (suc n)) = var (Bound n)
-  bind u (Free x i) = var (Free x i)
+  bind u (Free name) = var (Free name)
 
   apply : Op T → Var → T
   apply (Open x) v = var (open' x v)
