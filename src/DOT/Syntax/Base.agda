@@ -44,3 +44,13 @@ mutual
   data Defn : Set where
     [ty_='_] : TypeLabel → Type → Defn
     [tm_='_] : TermLabel → Term → Defn
+
+mutual
+  liftTerm : (Var → Term) → Term → Term
+  liftTerm f (` x) = f x
+  liftTerm f (V vl) = {! !}
+  liftTerm f (x ∙ x₁) = {! !}
+  liftTerm f (x ⊡ x₁) = {! !}
+  liftTerm f (let' t in' t₁) = {! !}
+
+foo = record { var = ` ; lift = liftTerm }

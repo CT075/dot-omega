@@ -30,19 +30,48 @@ data Var : Set where
   Bound : ℕ → Var
   Free : Name → Var
 
-open' : String → Var → Var
-open' x (Bound zero) = Free (N x zero)
-open' x (Bound (suc n)) = Bound n
-open' x (Free name) = Free (bump x name)
+openVar : String → Var → Var
+openVar x (Bound zero) = Free (N x zero)
+openVar x (Bound (suc n)) = Bound n
+openVar x (Free name) = Free (bump x name)
 
-close : String → Var → Var
-close x (Bound n) = Bound (suc n)
-close x (Free name) = lower Free (Bound zero) x name
+closeVar : String → Var → Var
+closeVar x (Bound n) = Bound (suc n)
+closeVar x (Free name) = lower Free (Bound zero) x name
 
-wk : Var → Var
-wk (Bound n) = Bound (suc n)
-wk (Free name) = Free name
+wkVar : Var → Var
+wkVar (Bound n) = Bound (suc n)
+wkVar (Free name) = Free name
 
+-- Simple generalization of variable-level transforms to full ASTs
+record Lift {ℓ : Level} (T : Set ℓ) : Set ℓ where
+  field
+    lift : (Var → Var) → T → T
+
+  openT : String → T → T
+  openT x = lift (openVar x)
+
+  closeT : String → T → T
+  closeT x = lift (closeVar x)
+
+  wkT : T → T
+  wkT = lift wkVar
+
+record Subst {ℓ : Level} (S : Set ℓ) (T : Set ℓ) : Set ℓ where
+  field
+    lift : Lift T
+    var : Var → S
+    subst : (Var → S) → T → T
+
+  bindVar : S → Var → S
+  bindVar u (Bound zero) = u
+  bindVar u (Bound (suc n)) = var (Bound n)
+  bindVar u (Free name) = var (Free name)
+
+  bindT : S → T → T
+  bindT u = subst (bindVar u)
+
+{-
 data Op {ℓ : Level} (T : Set ℓ) : Set ℓ where
   Open : String → Op T
   Close : String → Op T
@@ -62,7 +91,7 @@ record MakeOps {ℓ : Level} (T : Set ℓ) : Set ℓ where
 
   apply : Op T → Var → T
   apply (Open x) v = var (open' x v)
-  apply (Close x) v = var (close x v)
+  apply (Close x) v = var (closeVar x v)
   apply Wk v = var (wk v)
   apply (Bind u) v = bind u v
   apply (op₂ ∘ op₁) v = lift (apply op₂) (apply op₁ v)
@@ -81,4 +110,4 @@ record MakeOps {ℓ : Level} (T : Set ℓ) : Set ℓ where
 
   Shift : String -> Op T
   Shift x = Open x ∘ Wk
-
+-}

@@ -7,4 +7,4 @@ module DOT.Syntax {ℓ}
   where
 
 open import DOT.Syntax.Base TypeL TermL public
-open import DOT.Syntax.Context TypeL TermL public
+open import DOT.Syntax.Context TypeL TermL using (Ctx; put; empty; _[_]⊢>_) public

@@ -12,17 +12,9 @@ open import Data.String using (String; _==_)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Bool using (if_then_else_)
 
+open import Data.Var using (Name; bump; N)
+
 open import DOT.Syntax.Base TypeL TermL
-
--- TODO: This should live in [Var]
-record Name : Set where
-  constructor N
-  field
-    name : String
-    index : ℕ
-
-bump : String → Name → Name
-bump x (N y i) = if x == y then N y (suc i) else N y i
 
 record Entry : Set where
   constructor E
@@ -41,3 +33,8 @@ empty = []
 put : Ctx → String → Type → Ctx
 put xs x τ = (E (N x zero) τ) ∷ map (weaken x) xs
 
+infix 3 _[_]⊢>_
+
+data _[_]⊢>_ : Ctx → Name → Type → Set where
+  bind-hd : ∀{x i τ Γ} → ((E (N x i) τ) ∷ Γ) [ N x i ]⊢> τ
+  bind-tl : ∀{ent name τ Γ} → Γ [ name ]⊢> τ → (ent ∷ Γ) [ name ]⊢> τ
