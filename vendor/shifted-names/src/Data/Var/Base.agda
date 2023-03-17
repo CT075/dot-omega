@@ -77,6 +77,8 @@ record Subst {ℓ : Level} (T : Set ℓ) (S : Set ℓ) : Set ℓ where
     var : Var → S
     subst : (Var → S) → T → T
 
+  open Lift lift public
+
   bindVar : S → Var → S
   bindVar u (Bound zero) = u
   bindVar u (Bound (suc n)) = var (Bound n)
