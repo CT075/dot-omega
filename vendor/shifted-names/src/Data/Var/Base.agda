@@ -43,6 +43,12 @@ wkVar : Var → Var
 wkVar (Bound n) = Bound (suc n)
 wkVar (Free name) = Free name
 
+shiftVar : String → Var → Var
+shiftVar x v = openVar x (wkVar v)
+
+renameVar : String → String → Var → Var
+renameVar y x v = openVar y (closeVar x v)
+
 -- Simple generalization of variable-level transforms to full ASTs
 record Lift {ℓ : Level} (T : Set ℓ) : Set ℓ where
   field
@@ -57,8 +63,14 @@ record Lift {ℓ : Level} (T : Set ℓ) : Set ℓ where
   wkT : T → T
   wkT = lift wkVar
 
+  shiftT : String → T → T
+  shiftT x = lift (shiftVar x)
+
+  renameT : String → String → T → T
+  renameT y x = lift (renameVar y x)
+
 -- A [Subst T S] substitutes an [S] for a variable in [T]. In most cases, we
--- will have [T = T]
+-- will have [T = T], but in some cases only certain substitutions are valid.
 record Subst {ℓ : Level} (T : Set ℓ) (S : Set ℓ) : Set ℓ where
   field
     lift : Lift T
