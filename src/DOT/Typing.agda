@@ -9,9 +9,10 @@ module DOT.Typing {ℓ}
 open import Data.List using (List; []; _∷_; map)
 
 open import Data.Var
-open import Data.Context
 
 open import DOT.Syntax TypeL TermL
+
+open import Data.Context
 
 infix 4 _⊢ty_∈_
 infix 4 _⊢defn_∈_
@@ -25,13 +26,19 @@ mutual
       Γ ⊢ty V(ƛ τ e) ∈ ℿ τ ρ
     ty-ℿ-elim : ∀{Γ x z τ ρ} →
       Γ ⊢ty ` x ∈ ℿ τ ρ → Γ ⊢ty ` z ∈ τ →
-      Γ ⊢ty (x ⊡ z) ∈ (bindType z ρ)
+      Γ ⊢ty x ⊡ z ∈ bindType z ρ
     ty-new-intro : ∀{Γ τ x ds} →
       Γ & x ~ (openType x τ) ⊢defns (map (openDefn x) ds) ∈ (openType x τ) →
       Γ ⊢ty V(new τ ds) ∈ μ τ
+    ty-new-elim : ∀{Γ x ℓ τ} →
+      Γ ⊢ty ` x ∈ [ [ ℓ ∶ τ ] ] →
+      Γ ⊢ty x ∙ ℓ ∈ τ
     ty-let : ∀{Γ e₁ e₂ x τ ρ} →
       Γ & x ~ τ ⊢ty (openTerm x e₂) ∈ ρ →
       Γ ⊢ty (let' e₁ in' e₂) ∈ ρ
+    ty-rec-intro : ∀{Γ x τ} →
+      Γ ⊢ty ` x ∈ bindType x τ →
+      Γ ⊢ty ` x ∈ μ τ
 
   data _⊢defn_∈_ : Ctx Type → Defn → Decl → Set where
     ty-defn-type : ∀{Γ A τ} →
@@ -47,6 +54,6 @@ mutual
     ty-defns-cons : ∀{Γ d ds D τ} →
       Γ ⊢defns ds ∈ τ →
       Γ ⊢defn d ∈ D →
-      -- TODO: check that d is not in ds
+      d ∉ ds →
       Γ ⊢defns (d ∷ ds) ∈ τ ∧ [ D ]
 

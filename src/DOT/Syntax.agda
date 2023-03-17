@@ -9,12 +9,16 @@ module DOT.Syntax {ℓ}
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
 open import Data.List using (List; []; _∷_)
+open import Data.List.Relation.Unary.Any using (Any)
+open import Relation.Nullary.Negation using (¬_)
 open import Function.Base using (id)
 
 open import Data.Var using (Var; Lift; Subst)
 
 TypeLabel = DecSetoid.Carrier TypeL
 TermLabel = DecSetoid.Carrier TermL
+
+-- Core syntax
 
 mutual
   data Type : Set where
@@ -45,6 +49,20 @@ mutual
   data Defn : Set where
     typ_='_ : TypeLabel → Type → Defn
     val_='_ : TermLabel → Term → Defn
+
+-- Utility functions
+
+data defnMatchesType : TypeLabel → Defn → Set where
+  dmty-lbl : ∀{A τ} → defnMatchesType A (typ A =' τ)
+
+data defnMatchesTerm : TermLabel → Defn → Set where
+  dmtm-lbl : ∀{ℓ e} → defnMatchesTerm ℓ (val ℓ =' e)
+
+_∉_ : Defn → List Defn → Set
+(typ A =' _) ∉ ds = ¬ (Any (defnMatchesType A) ds)
+(val ℓ =' _) ∉ ds = ¬ (Any (defnMatchesTerm ℓ) ds)
+
+-- Locally-nameless operations
 
 mutual
   liftType : (Var → Var) → Type → Type
@@ -79,14 +97,15 @@ mutual
   liftDefn f (typ A =' τ) = typ A =' (liftType f τ)
   liftDefn f (val ℓ =' e) = val ℓ =' (liftTerm f e)
 
-TermLift : Lift Term
-TermLift = record {lift = liftTerm}
+instance
+  TermLift : Lift Term
+  TermLift = record {lift = liftTerm}
 
-TypeLift : Lift Type
-TypeLift = record {lift = liftType}
+  TypeLift : Lift Type
+  TypeLift = record {lift = liftType}
 
-DefnLift : Lift Defn
-DefnLift = record {lift = liftDefn}
+  DefnLift : Lift Defn
+  DefnLift = record {lift = liftDefn}
 
 open Subst (record {lift = TermLift; var = id; subst = liftTerm}) renaming
   ( openT to openTerm
