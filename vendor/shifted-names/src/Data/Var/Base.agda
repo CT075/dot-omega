@@ -57,7 +57,9 @@ record Lift {ℓ : Level} (T : Set ℓ) : Set ℓ where
   wkT : T → T
   wkT = lift wkVar
 
-record Subst {ℓ : Level} (S : Set ℓ) (T : Set ℓ) : Set ℓ where
+-- A [Subst T S] substitutes an [S] for a variable in [T]. In most cases, we
+-- will have [T = T]
+record Subst {ℓ : Level} (T : Set ℓ) (S : Set ℓ) : Set ℓ where
   field
     lift : Lift T
     var : Var → S
@@ -70,44 +72,3 @@ record Subst {ℓ : Level} (S : Set ℓ) (T : Set ℓ) : Set ℓ where
 
   bindT : S → T → T
   bindT u = subst (bindVar u)
-
-{-
-data Op {ℓ : Level} (T : Set ℓ) : Set ℓ where
-  Open : String → Op T
-  Close : String → Op T
-  Wk : Op T
-  Bind : T → Op T
-  _∘_ : Op T → Op T → Op T
-
-record MakeOps {ℓ : Level} (T : Set ℓ) : Set ℓ where
-  field
-    var : Var → T
-    lift : (Var → T) → T → T
-
-  bind : T → Var → T
-  bind u (Bound zero) = u
-  bind u (Bound (suc n)) = var (Bound n)
-  bind u (Free name) = var (Free name)
-
-  apply : Op T → Var → T
-  apply (Open x) v = var (open' x v)
-  apply (Close x) v = var (closeVar x v)
-  apply Wk v = var (wk v)
-  apply (Bind u) v = bind u v
-  apply (op₂ ∘ op₁) v = lift (apply op₂) (apply op₁ v)
-
-  _/_ : T → Op T → T
-  t / op = lift (apply op) t
-
-  infix 4 Rename_to_
-
-  -- Compound operations
-  Rename_to_ : String → String → Op T
-  Rename x to y = Open y ∘ Close x
-
-  Subst : T → String → Op T
-  Subst u x = Bind u ∘ Close x
-
-  Shift : String -> Op T
-  Shift x = Open x ∘ Wk
--}

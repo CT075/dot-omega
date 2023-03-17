@@ -43,9 +43,9 @@ nested-if-same-cond-else : ∀ {a : Set} c (t1 : a) {t2} t3 →
 nested-if-same-cond-else true t1 {t2} t3 = refl
 nested-if-same-cond-else false t1 {t2} t3 = refl
 
-open-closeVar-id : ∀ x v → openVar x (closeVar x v) ≡ v
-open-closeVar-id x (Bound n) = refl
-open-closeVar-id x (Free (N y zero)) = begin
+open-close-id : ∀ x v → openVar x (closeVar x v) ≡ v
+open-close-id x (Bound n) = refl
+open-close-id x (Free (N y zero)) = begin
     openVar x (closeVar x (Free (N y zero)))
   ≡⟨ refl ⟩
     openVar x (lower Free (Bound zero) x (N y zero))
@@ -69,7 +69,7 @@ open-closeVar-id x (Free (N y zero)) = begin
   ≡⟨ if-both-branches (x == y) (Free (N y zero)) ⟩
     Free (N y zero)
   ∎
-open-closeVar-id x (Free (N y (suc i))) = begin
+open-close-id x (Free (N y (suc i))) = begin
     openVar x (closeVar x (Free (N y (suc i))))
   ≡⟨ refl ⟩
     openVar x (if x == y then Free (N y i) else Free (N y (suc i)))
@@ -112,8 +112,8 @@ open-closeVar-id x (Free (N y (suc i))) = begin
     Free (N y (suc i))
   ∎
 
-closeVar-open-id : ∀ x v → closeVar x (openVar x v) ≡ v
-closeVar-open-id x (Bound zero) = begin
+close-open-id : ∀ x v → closeVar x (openVar x v) ≡ v
+close-open-id x (Bound zero) = begin
     closeVar x (openVar x (Bound zero))
   ≡⟨ refl ⟩
     closeVar x (Free (N x zero))
@@ -124,8 +124,8 @@ closeVar-open-id x (Bound zero) = begin
   ≡⟨ refl ⟩
     Bound zero
   ∎
-closeVar-open-id x (Bound (suc n)) = refl
-closeVar-open-id x (Free (N y zero)) = begin
+close-open-id x (Bound (suc n)) = refl
+close-open-id x (Free (N y zero)) = begin
     closeVar x (openVar x (Free (N y zero)))
   ≡⟨ refl ⟩
     closeVar x (Free (if x == y then N y (suc zero) else N y zero))
@@ -146,7 +146,7 @@ closeVar-open-id x (Free (N y zero)) = begin
   ≡⟨ if-both-branches (x == y) (Free (N y zero)) ⟩
     Free (N y zero)
   ∎
-closeVar-open-id x (Free (N y (suc i))) = begin
+close-open-id x (Free (N y (suc i))) = begin
     closeVar x (openVar x (Free (N y (suc i))))
   ≡⟨ refl ⟩
     closeVar x (Free (if x == y then N y (suc (suc i)) else N y (suc i)))
@@ -168,11 +168,10 @@ closeVar-open-id x (Free (N y (suc i))) = begin
     Free (N y (suc i))
   ∎
 
-{-
-module _ {ℓ} (T : Set ℓ) (Ops : MakeOps T) where
-  open MakeOps Ops
+module _ {ℓ} (T : Set ℓ) (S : Set ℓ) (subst : Subst T S) where
+  open Subst subst
 
-  bind-wk-id : ∀ u v → bind u (wk v) ≡ var v
-  bind-wk-id u (Bound n) = refl
-  bind-wk-id u (Free name) = refl
-  -}
+  bind-wk-var-id : ∀ u v → bindVar u (wkVar v) ≡ var v
+  bind-wk-var-id u (Bound n) = refl
+  bind-wk-var-id u (Free name) = refl
+
