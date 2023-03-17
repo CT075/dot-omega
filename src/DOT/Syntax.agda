@@ -9,8 +9,9 @@ module DOT.Syntax {ℓ}
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
 open import Data.List using (List; []; _∷_)
+open import Function.Base using (id)
 
-open import Data.Var using (Var; Lift)
+open import Data.Var using (Var; Lift; Subst)
 
 TypeLabel = DecSetoid.Carrier TypeL
 TermLabel = DecSetoid.Carrier TermL
@@ -51,12 +52,12 @@ mutual
   liftType f ⊥ = ⊥
   liftType f [ decl ] = [ liftDecl f decl ]
   liftType f (τ₁ ∧ τ₂) = liftType f τ₁ ∧ liftType f τ₂
-  liftType f (x ∙ ℓ) = f x ∙ ℓ
+  liftType f (x ∙ A) = f x ∙ A
   liftType f (μ τ) = μ (liftType f τ)
   liftType f (ℿ τ ρ) = ℿ (liftType f τ) (liftType f ρ)
 
   liftDecl : (Var → Var) → Decl → Decl
-  liftDecl f [ ℓ ∶ τ₁ ∙∙ τ₂ ] = [ ℓ ∶ liftType f τ₁ ∙∙ liftType f τ₂ ]
+  liftDecl f [ A ∶ τ₁ ∙∙ τ₂ ] = [ A ∶ liftType f τ₁ ∙∙ liftType f τ₂ ]
   liftDecl f [ ℓ ∶ τ ] = [ ℓ ∶ liftType f τ ]
 
   liftTerm : (Var → Var) → Term → Term
@@ -75,23 +76,47 @@ mutual
       mapf (defn ∷ defns) = liftDefn f defn ∷ mapf defns
 
   liftDefn : (Var → Var) → Defn → Defn
-  liftDefn f (typ ℓ =' τ) = typ ℓ =' (liftType f τ)
+  liftDefn f (typ A =' τ) = typ A =' (liftType f τ)
   liftDefn f (val ℓ =' e) = val ℓ =' (liftTerm f e)
 
-open Lift (record {lift = liftTerm}) renaming
+TermLift : Lift Term
+TermLift = record {lift = liftTerm}
+
+TypeLift : Lift Type
+TypeLift = record {lift = liftType}
+
+DefnLift : Lift Defn
+DefnLift = record {lift = liftDefn}
+
+open Subst (record {lift = TermLift; var = id; subst = liftTerm}) renaming
   ( openT to openTerm
   ; closeT to closeTerm
   ; wkT to wkTerm
   ; shiftT to shiftTerm
   ; renameT to renameTerm
+  ; bindT to bindTerm
   )
+  hiding (bindVar)
   public
 
-open Lift (record {lift = liftType}) renaming
+open Subst (record {lift = TypeLift; var = id; subst = liftType}) renaming
   ( openT to openType
   ; closeT to closeType
   ; wkT to wkType
   ; shiftT to shiftType
   ; renameT to renameType
+  ; bindT to bindType
   )
+  hiding (bindVar)
+  public
+
+open Subst (record {lift = DefnLift; var = id; subst = liftDefn}) renaming
+  ( openT to openDefn
+  ; closeT to closeDefn
+  ; wkT to wkDefn
+  ; shiftT to shiftDefn
+  ; renameT to renameDefn
+  ; bindT to bindDefn
+  )
+  hiding (bindVar)
   public
