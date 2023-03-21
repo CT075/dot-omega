@@ -31,8 +31,8 @@ mutual
     ℿ : Type → Type → Type                 -- dependent function
 
   data Decl : Set where
-    _∶_∙∙_ : TypeLabel → Type → Type → Decl
-    _∶_ : TermLabel → Type → Decl
+    typ_∶_∙∙_ : TypeLabel → Type → Type → Decl
+    val_∶_ : TermLabel → Type → Decl
 
 mutual
   data Term : Set where
@@ -75,8 +75,8 @@ mutual
   liftType f (ℿ τ ρ) = ℿ (liftType f τ) (liftType f ρ)
 
   liftDecl : (Var → Var) → Decl → Decl
-  liftDecl f (A ∶ τ₁ ∙∙ τ₂) = A ∶ liftType f τ₁ ∙∙ liftType f τ₂
-  liftDecl f (ℓ ∶ τ) = ℓ ∶ liftType f τ
+  liftDecl f (typ A ∶ τ₁ ∙∙ τ₂) = typ A ∶ liftType f τ₁ ∙∙ liftType f τ₂
+  liftDecl f (val ℓ ∶ τ) = val ℓ ∶ liftType f τ
 
   liftTerm : (Var → Var) → Term → Term
   liftTerm f (` x) = ` (f x)
