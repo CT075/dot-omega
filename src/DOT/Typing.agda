@@ -39,6 +39,7 @@ mutual
       Γ ⊢tm ` x ∈ [ val ℓ ∶ τ ] →
       Γ ⊢tm x ∙ ℓ ∈ τ
     ty-let : ∀{Γ e₁ e₂ x τ ρ} →
+      Γ ⊢tm e₁ ∈ τ →
       Γ & x ~ τ ⊢tm (openTerm x e₂) ∈ ρ →
       Γ ⊢tm (let' e₁ in' e₂) ∈ ρ
     ty-rec-intro : ∀{Γ x τ} →
