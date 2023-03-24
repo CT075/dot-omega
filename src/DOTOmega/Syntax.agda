@@ -23,7 +23,7 @@ TermLabel = DecSetoid.Carrier TermL
 mutual
   data Kind : Set where
     _∙∙_ : Type → Type → Kind              -- interval kinds
-    ℿ : Kind → Kind → Kind               -- type-level function kinds
+    ℿ : Kind → Kind → Kind                 -- type-level function kinds
 
   data Type : Set where
     ⊤ : Type                               -- top
@@ -34,6 +34,8 @@ mutual
     μ : Type → Type                        -- recursive types
     ℿ : Type → Type → Type                 -- dependent function
     ƛ : Kind → Type → Type                 -- type lambda
+    ` : Var → Type                         -- type variable
+    _⊡_ : Var → Var → Type                 -- application
 
   data Decl : Set where
     typ_∶_ : TypeLabel → Kind → Decl
@@ -48,6 +50,7 @@ mutual
     _∙_ : Var → TermLabel → Term           -- field selection
     _⊡_ : Var → Var → Term                 -- application
     let'_in'_ : Term → Term → Term         -- let-binding
+    lettype_in'_ : Type → Term → Term      -- type binding
 
   data Val : Set where
     new : Type → List Defn → Val           -- new object definitions
@@ -85,6 +88,8 @@ mutual
   liftType f (μ τ) = μ (liftType f τ)
   liftType f (ℿ τ ρ) = ℿ (liftType f τ) (liftType f ρ)
   liftType f (ƛ k τ) = ƛ (liftKind f k) (liftType f τ)
+  liftType f (` x) = ` (f x)
+  liftType f (g ⊡ τ) = f g ⊡ f τ
 
   liftDecl : (Var → Var) → Decl → Decl
   liftDecl f (typ A ∶ k) = typ A ∶ liftKind f k
@@ -96,6 +101,7 @@ mutual
   liftTerm f (a ∙ b) = f a ∙ b
   liftTerm f (a ⊡ b) = f a ⊡ f b
   liftTerm f (let' t1 in' t2) = let' (liftTerm f t1) in' (liftTerm f t2)
+  liftTerm f (lettype τ in' t) = lettype (liftType f τ) in' (liftTerm f t)
 
   liftVal : (Var → Var) → Val → Val
   liftVal f (ƛ τ e) = ƛ τ (liftTerm f e)
@@ -110,6 +116,9 @@ mutual
   liftDefn f (val ℓ =' e) = val ℓ =' (liftTerm f e)
 
 instance
+  KindLift : Lift Kind
+  KindLift = record {lift = liftKind}
+
   TermLift : Lift Term
   TermLift = record {lift = liftTerm}
 
@@ -118,6 +127,17 @@ instance
 
   DefnLift : Lift Defn
   DefnLift = record {lift = liftDefn}
+
+open Subst (record {lift = KindLift; var = id; subst = liftKind}) renaming
+  ( openT to openKind
+  ; closeT to closeKind
+  ; wkT to wkKind
+  ; shiftT to shiftKind
+  ; renameT to renameKind
+  ; bindT to bindKind
+  )
+  hiding (bindVar)
+  public
 
 open Subst (record {lift = TermLift; var = id; subst = liftTerm}) renaming
   ( openT to openTerm
