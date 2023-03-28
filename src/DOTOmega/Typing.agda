@@ -36,6 +36,9 @@ infix 4 _⊢ty_∈_
 infix 4 _⊢kd_≤_ _⊢ty_≤_∈_
 infix 4 _⊢ty_==_∈_
 
+infix 4 _⊢tm_∈_
+infix 4 _⊢defn_∈_ _⊢defns_∈_
+
 mutual
   data _ctx : Context → Set where
     c-empty : [] ctx
@@ -124,6 +127,58 @@ mutual
   data _⊢ty_==_∈_ (Γ : Context) : Type → Type → Kind → Set where
     st-antisym : ∀{K A B} →
       Γ ⊢ty A ≤ B ∈ K → Γ ⊢ty B ≤ A ∈ K → Γ ⊢ty A == B ∈ K
+
+  data _⊢tm_∈_ (Γ : Ctx VarFact) : Term → Type → Set where
+    ty-var : ∀{name τ} → Γ [ name ]⊢> Ty τ → Γ ⊢tm `(Free name) ∈ τ
+    ty-ℿ-intro : ∀{x τ ρ e} →
+      Γ & x ~ Ty τ ⊢tm openTerm x e ∈ openType x ρ →
+      Γ ⊢tm V(ƛ τ e) ∈ ℿ τ ρ
+    ty-ℿ-elim : ∀{x z τ ρ} →
+      Γ ⊢tm ` x ∈ ℿ τ ρ → Γ ⊢tm ` z ∈ τ →
+      Γ ⊢tm x ⊡ z ∈ bindType z ρ
+    ty-new-intro : ∀{τ x ds} →
+      Γ & x ~ Ty (openType x τ) ⊢defns (map (openDefn x) ds) ∈ (openType x τ) →
+      Γ ⊢tm V(new τ ds) ∈ μ τ
+    ty-new-elim : ∀{x ℓ τ} →
+      Γ ⊢tm ` x ∈ [ val ℓ ∶ τ ] →
+      Γ ⊢tm x ∙ ℓ ∈ τ
+    ty-let : ∀{e₁ e₂ x τ ρ} →
+      Γ ⊢tm e₁ ∈ τ →
+      Γ & x ~ Ty τ ⊢tm (openTerm x e₂) ∈ ρ →
+      Γ ⊢tm (let' e₁ in' e₂) ∈ ρ
+    ty-rec-intro : ∀{x τ} →
+      Γ ⊢tm ` x ∈ bindType x τ →
+      Γ ⊢tm ` x ∈ μ τ
+    ty-rec-elim : ∀{x τ} →
+      Γ ⊢tm ` x ∈ μ τ →
+      Γ ⊢tm ` x ∈ bindType x τ
+    ty-and-intro : ∀{x τ₁ τ₂} →
+      Γ ⊢tm ` x ∈ τ₁ → Γ ⊢tm ` x ∈ τ₂ →
+      Γ ⊢tm ` x ∈ τ₁ ∧ τ₂
+    ty-lettype : ∀{τ e k x ρ} →
+      Γ ⊢ty τ ∈ k →
+      Γ & x ~ Alias τ k ⊢tm e ∈ ρ →
+      Γ ⊢tm lettype τ in' e ∈ ρ
+    ty-sub : ∀{e τ₁ τ₂} →
+      Γ ⊢tm e ∈ τ₁ → Γ ⊢ty τ₁ ≤ τ₂ ∈ ✶ →
+      Γ ⊢tm e ∈ τ₂
+
+  -- Definition typing
+  data _⊢defn_∈_ (Γ : Ctx VarFact) : Defn → Decl → Set where
+    ty-defn-type : ∀{A k τ} → Γ ⊢ty τ ∈ k → Γ ⊢defn (typ A =' τ) ∈ typ A ∶ k
+    ty-defn-term : ∀{ℓ e τ} →
+      Γ ⊢tm e ∈ τ →
+      Γ ⊢defn (val ℓ =' e) ∈ val ℓ ∶ τ
+
+  data _⊢defns_∈_ (Γ : Ctx VarFact) : List Defn → Type → Set where
+    ty-defns-one : ∀{d D} →
+      Γ ⊢defn d ∈ D →
+      Γ ⊢defns (d ∷ []) ∈ [ D ]
+    ty-defns-cons : ∀{d ds D τ} →
+      Γ ⊢defns ds ∈ τ →
+      Γ ⊢defn d ∈ D →
+      d ∉ ds →
+      Γ ⊢defns (d ∷ ds) ∈ τ ∧ [ D ]
 
 -- Lemmas/derived rules
 

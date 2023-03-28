@@ -6,7 +6,6 @@ module DOTOmega.Syntax {ℓ}
     (TermL : DecSetoid lzero ℓ)
   where
 
-open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Relation.Unary.Any using (Any)
