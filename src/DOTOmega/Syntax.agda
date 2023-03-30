@@ -34,7 +34,7 @@ mutual
     ℿ : Type → Type → Type                 -- dependent function
     ƛ : Kind → Type → Type                 -- type lambda
     ` : Var → Type                         -- type variable
-    _⊡_ : Var → Var → Type                 -- application
+    _⊡_ : Type → Type → Type               -- application
 
   data Decl : Set where
     typ_∶_ : TypeLabel → Kind → Decl
@@ -88,7 +88,7 @@ mutual
   liftType f (ℿ τ ρ) = ℿ (liftType f τ) (liftType f ρ)
   liftType f (ƛ k τ) = ƛ (liftKind f k) (liftType f τ)
   liftType f (` x) = ` (f x)
-  liftType f (g ⊡ τ) = f g ⊡ f τ
+  liftType f (g ⊡ τ) = liftType f g ⊡ liftType f τ
 
   liftDecl : (Var → Var) → Decl → Decl
   liftDecl f (typ A ∶ k) = typ A ∶ liftKind f k
@@ -126,6 +126,47 @@ instance
 
   DefnLift : Lift Defn
   DefnLift = record {lift = liftDefn}
+
+mutual
+  substTypeInKind : (Var → Type) → Kind → Kind
+  substTypeInKind f (A ∙∙ B) = substTypeInType f A ∙∙ substTypeInType f B
+  substTypeInKind f (ℿ J K) = ℿ (substTypeInKind f J) (substTypeInKind f K)
+
+  substTypeInType : (Var → Type) → Type → Type
+  substTypeInType f ⊤ = ⊤
+  substTypeInType f ⊥ = ⊥
+  substTypeInType f [ decl ] = [ substTypeInDecl f decl ]
+  substTypeInType f (τ₁ ∧ τ₂) = substTypeInType f τ₁ ∧ substTypeInType f τ₂
+  substTypeInType f (x ∙ A) = x ∙ A
+  substTypeInType f (μ τ) = μ (substTypeInType f τ)
+  substTypeInType f (ℿ τ ρ) = ℿ (substTypeInType f τ) (substTypeInType f ρ)
+  substTypeInType f (ƛ k τ) = ƛ (substTypeInKind f k) (substTypeInType f τ)
+  substTypeInType f (` x) = f x
+  substTypeInType f (g ⊡ τ) = substTypeInType f g ⊡ substTypeInType f τ
+
+  substTypeInDecl : (Var → Type) → Decl → Decl
+  substTypeInDecl f (typ A ∶ k) = typ A ∶ substTypeInKind f k
+  substTypeInDecl f (val ℓ ∶ τ) = val ℓ ∶ substTypeInType f τ
+
+  substTypeInTerm : (Var → Type) → Term → Term
+  substTypeInTerm f (` x) = ` x
+  substTypeInTerm f (V vl) = V (substTypeInVal f vl)
+  substTypeInTerm f (a ∙ b) = a ∙ b
+  substTypeInTerm f (a ⊡ b) = a ⊡ b
+  substTypeInTerm f (let' t1 in' t2) = let' (substTypeInTerm f t1) in' (substTypeInTerm f t2)
+  substTypeInTerm f (lettype τ in' t) = lettype (substTypeInType f τ) in' (substTypeInTerm f t)
+
+  substTypeInVal : (Var → Type) → Val → Val
+  substTypeInVal f (ƛ τ e) = ƛ τ (substTypeInTerm f e)
+  substTypeInVal f (new τ defns) = new (substTypeInType f τ) (mapf defns)
+    where
+      mapf : List Defn → List Defn
+      mapf [] = []
+      mapf (defn ∷ defns) = substTypeInDefn f defn ∷ mapf defns
+
+  substTypeInDefn : (Var → Type) → Defn → Defn
+  substTypeInDefn f (typ A =' τ) = typ A =' (substTypeInType f τ)
+  substTypeInDefn f (val ℓ =' e) = val ℓ =' (substTypeInTerm f e)
 
 open Subst (record {lift = KindLift; var = id; subst = liftKind}) renaming
   ( openT to openKind

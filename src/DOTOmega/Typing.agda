@@ -17,12 +17,10 @@ open import Data.Context
 data VarFact : Set where
   Kd : Kind → VarFact              -- Type variable kind assignment
   Ty : Type → VarFact              -- Term variable type assignment
-  Alias : Type → Kind → VarFact    -- Type variable alias
 
 liftVarFact : (Var → Var) → VarFact → VarFact
 liftVarFact f (Kd k) = Kd (liftKind f k)
 liftVarFact f (Ty τ) = Ty (liftType f τ)
-liftVarFact f (Alias τ k) = Alias (liftType f τ) (liftKind f k)
 
 instance
   VarFactLift : Lift VarFact
@@ -44,7 +42,6 @@ mutual
     c-empty : [] ctx
     c-cons-kd : ∀{Γ x k} → Γ ctx → Γ ⊢ k kd → Γ & x ~ Kd k ctx
     c-cons-ty : ∀{Γ x τ k} → Γ ctx → Γ ⊢ty τ ∈ k → Γ & x ~ Ty τ ctx
-    c-cons-alias : ∀{Γ x τ k} → Γ ctx → Γ ⊢ty τ ∈ k → Γ & x ~ Alias τ k ctx
 
   data _⊢_kd (Γ : Context) : Kind → Set where
     wf-intv : ∀{A B} → Γ ⊢ty A ∈ ✶ → Γ ⊢ty B ∈ ✶ → Γ ⊢ A ∙∙ B kd
@@ -55,10 +52,6 @@ mutual
 
   data _⊢ty_∈_ (Γ : Context) : Type → Kind → Set where
     k-var : ∀{name k} → Γ ctx → Γ [ name ]⊢> Kd k → Γ ⊢ty `(Free name) ∈ k
-    k-alias : ∀{name τ k} →
-      Γ ctx →
-      Γ [ name ]⊢> Alias τ k →
-      Γ ⊢ty `(Free name) ∈ k
     k-sing : ∀{A B C} →
       Γ ⊢ty A ∈ B ∙∙ C →
       Γ ⊢ty A ∈ A ∙∙ A
@@ -71,11 +64,11 @@ mutual
       Γ & x ~ Kd J ⊢ty openType x A ∈ openKind x K →
       Γ ⊢ty ƛ J A ∈ ℿ J K
     k-app : ∀{J K x f z} →
-      Γ ⊢ty ` f ∈ ℿ J K →
+      Γ ⊢ty f ∈ ℿ J K →
       Γ ⊢ty ` z ∈ J →
       Γ & x ~ Kd J ⊢ openKind x K kd →
       Γ ⊢ bindKind z K kd →
-      Γ ⊢ty f ⊡ z ∈ bindKind z K
+      Γ ⊢ty f ⊡ ` z ∈ bindKind z K
     k-intersect : ∀{τ₁ τ₂ A B} →
       Γ ⊢ty τ₁ ∈ A ∙∙ B →
       Γ ⊢ty τ₂ ∈ A ∙∙ B →
@@ -109,8 +102,6 @@ mutual
       Γ ⊢ty A ≤ C ∈ K
     st-top : ∀{A B C} → Γ ⊢ty A ∈ B ∙∙ C → Γ ⊢ty A ≤ ⊤ ∈ ✶
     st-bot : ∀{A B C} → Γ ⊢ty A ∈ B ∙∙ C → Γ ⊢ty ⊥ ≤ A ∈ ✶
-    st-alias₁ : ∀{x τ k} → Γ [ x ]⊢> Alias τ k → Γ ⊢ty `(Free x) ≤ τ ∈ k
-    st-alias₂ : ∀{x τ k} → Γ [ x ]⊢> Alias τ k → Γ ⊢ty τ ≤ `(Free x) ∈ k
     st-and-l₁ : ∀{τ₁ τ₂ K} → Γ ⊢ty τ₁ ∧ τ₂ ∈ K → Γ ⊢ty τ₁ ∧ τ₂ ≤ τ₁ ∈ K
     st-and-l₂ : ∀{τ₁ τ₂ K} → Γ ⊢ty τ₁ ∧ τ₂ ∈ K → Γ ⊢ty τ₁ ∧ τ₂ ≤ τ₂ ∈ K
     st-and₂ : ∀{ρ τ₁ τ₂ K} →
@@ -155,10 +146,6 @@ mutual
     ty-and-intro : ∀{x τ₁ τ₂} →
       Γ ⊢tm ` x ∈ τ₁ → Γ ⊢tm ` x ∈ τ₂ →
       Γ ⊢tm ` x ∈ τ₁ ∧ τ₂
-    ty-lettype : ∀{τ e k x ρ} →
-      Γ ⊢ty τ ∈ k →
-      Γ & x ~ Alias τ k ⊢tm e ∈ ρ →
-      Γ ⊢tm lettype τ in' e ∈ ρ
     ty-sub : ∀{e τ₁ τ₂} →
       Γ ⊢tm e ∈ τ₁ → Γ ⊢ty τ₁ ≤ τ₂ ∈ ✶ →
       Γ ⊢tm e ∈ τ₂
