@@ -37,6 +37,8 @@ infix 4 _⊢ty_==_∈_
 infix 4 _⊢tm_∈_
 infix 4 _⊢defn_∈_ _⊢defns_∈_
 
+-- Regular typing
+
 mutual
   data _ctx : Context → Set where
     c-empty : [] ctx
@@ -52,6 +54,8 @@ mutual
 
   data _⊢ty_∈_ (Γ : Context) : Type → Kind → Set where
     k-var : ∀{name k} → Γ ctx → Γ [ name ]⊢> Kd k → Γ ⊢ty `(Free name) ∈ k
+    k-top : Γ ⊢ty ⊤ ∈ ✶
+    k-bot : Γ ⊢ty ⊥ ∈ ✶
     k-sing : ∀{A B C} →
       Γ ⊢ty A ∈ B ∙∙ C →
       Γ ⊢ty A ∈ A ∙∙ A
@@ -63,12 +67,12 @@ mutual
       Γ ⊢ J kd →
       Γ & x ~ Kd J ⊢ty openType x A ∈ openKind x K →
       Γ ⊢ty ƛ J A ∈ ℿ J K
-    k-app : ∀{J K x f z} →
+    k-app : ∀{J K x f τ} →
       Γ ⊢ty f ∈ ℿ J K →
-      Γ ⊢ty ` z ∈ J →
+      Γ ⊢ty τ ∈ J →
       Γ & x ~ Kd J ⊢ openKind x K kd →
-      Γ ⊢ bindKind z K kd →
-      Γ ⊢ty f ⊡ ` z ∈ bindKind z K
+      Γ ⊢ bindKind τ K kd →
+      Γ ⊢ty f ⊡ τ ∈ bindKind τ K
     k-intersect : ∀{τ₁ τ₂ A B} →
       Γ ⊢ty τ₁ ∈ A ∙∙ B →
       Γ ⊢ty τ₂ ∈ A ∙∙ B →
@@ -82,6 +86,9 @@ mutual
     k-typ : ∀{A k} →
       Γ ⊢ k kd →
       Γ ⊢ty [ typ A ∶ k ] ∈ ✶
+    k-sel : ∀{A x k} →
+      Γ ⊢tm ` x ∈ [ typ A ∶ k ] →
+      Γ ⊢ty x ∙ A ∈ k
 
   data _⊢kd_≤_ (Γ : Context) : Kind → Kind → Set where
     sk-intv : ∀{A₁ A₂ B₁ B₂} →
@@ -113,6 +120,16 @@ mutual
     st-typ : ∀{A k₁ k₂} →
       Γ ⊢kd k₁ ≤ k₂ →
       Γ ⊢ty [ typ A ∶ k₁ ] ≤ [ typ A ∶ k₂ ] ∈ ✶
+    st-β₁ : ∀{J K x A B} →
+      Γ & x ~ Kd J ⊢ty openType x A ∈ K →
+      Γ ⊢ty B ∈ J →
+      Γ ⊢ty (ƛ J A) ⊡ B ≤ bindType B A ∈ bindKind B K
+    st-β₂ : ∀{J K x A B} →
+      Γ & x ~ Kd J ⊢ty openType x A ∈ K →
+      Γ ⊢ty B ∈ J →
+      Γ ⊢ty bindType B A ≤ (ƛ J A) ⊡ B ∈ bindKind B K
+    st-bnd₁ : ∀{A S U} → Γ ⊢ty A ∈ S ∙∙ U → Γ ⊢ty S ≤ A ∈ ✶
+    st-bnd₂ : ∀{A S U} → Γ ⊢ty A ∈ S ∙∙ U → Γ ⊢ty A ≤ U ∈ ✶
 
   -- Type equality
   data _⊢ty_==_∈_ (Γ : Context) : Type → Type → Kind → Set where
@@ -126,7 +143,7 @@ mutual
       Γ ⊢tm V(ƛ τ e) ∈ ℿ τ ρ
     ty-ℿ-elim : ∀{x z τ ρ} →
       Γ ⊢tm ` x ∈ ℿ τ ρ → Γ ⊢tm ` z ∈ τ →
-      Γ ⊢tm x ⊡ z ∈ bindType z ρ
+      Γ ⊢tm x ⊡ z ∈ bindType (` z) ρ
     ty-new-intro : ∀{τ x ds} →
       Γ & x ~ Ty (openType x τ) ⊢defns (map (openDefn x) ds) ∈ (openType x τ) →
       Γ ⊢tm V(new τ ds) ∈ μ τ
@@ -138,11 +155,11 @@ mutual
       Γ & x ~ Ty τ ⊢tm (openTerm x e₂) ∈ ρ →
       Γ ⊢tm (let' e₁ in' e₂) ∈ ρ
     ty-rec-intro : ∀{x τ} →
-      Γ ⊢tm ` x ∈ bindType x τ →
+      Γ ⊢tm ` x ∈ bindType (` x) τ →
       Γ ⊢tm ` x ∈ μ τ
     ty-rec-elim : ∀{x τ} →
       Γ ⊢tm ` x ∈ μ τ →
-      Γ ⊢tm ` x ∈ bindType x τ
+      Γ ⊢tm ` x ∈ bindType (` x) τ
     ty-and-intro : ∀{x τ₁ τ₂} →
       Γ ⊢tm ` x ∈ τ₁ → Γ ⊢tm ` x ∈ τ₂ →
       Γ ⊢tm ` x ∈ τ₁ ∧ τ₂
@@ -172,3 +189,4 @@ mutual
 intv≤✶ : ∀{Γ A B τ₁ τ₂ τ₃ τ₄} →
   Γ ⊢ty A ∈ τ₁ ∙∙ τ₂ → Γ ⊢ty B ∈ τ₃ ∙∙ τ₄ → Γ ⊢kd A ∙∙ B ≤ ✶
 intv≤✶ Γ⊢A∈∙∙ Γ⊢B∈∙∙ = sk-intv (st-bot Γ⊢A∈∙∙) (st-top Γ⊢B∈∙∙)
+

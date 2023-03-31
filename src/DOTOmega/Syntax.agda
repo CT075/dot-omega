@@ -128,47 +128,47 @@ instance
   DefnLift = record {lift = liftDefn}
 
 mutual
-  substTypeInKind : (Var → Type) → Kind → Kind
-  substTypeInKind f (A ∙∙ B) = substTypeInType f A ∙∙ substTypeInType f B
-  substTypeInKind f (ℿ J K) = ℿ (substTypeInKind f J) (substTypeInKind f K)
+  _/Kind_ : (Var → Type) → Kind → Kind
+  _/Kind_ f (A ∙∙ B) = _/Type_ f A ∙∙ _/Type_ f B
+  _/Kind_ f (ℿ J K) = ℿ (_/Kind_ f J) (_/Kind_ f K)
 
-  substTypeInType : (Var → Type) → Type → Type
-  substTypeInType f ⊤ = ⊤
-  substTypeInType f ⊥ = ⊥
-  substTypeInType f [ decl ] = [ substTypeInDecl f decl ]
-  substTypeInType f (τ₁ ∧ τ₂) = substTypeInType f τ₁ ∧ substTypeInType f τ₂
-  substTypeInType f (x ∙ A) = x ∙ A
-  substTypeInType f (μ τ) = μ (substTypeInType f τ)
-  substTypeInType f (ℿ τ ρ) = ℿ (substTypeInType f τ) (substTypeInType f ρ)
-  substTypeInType f (ƛ k τ) = ƛ (substTypeInKind f k) (substTypeInType f τ)
-  substTypeInType f (` x) = f x
-  substTypeInType f (g ⊡ τ) = substTypeInType f g ⊡ substTypeInType f τ
+  _/Type_ : (Var → Type) → Type → Type
+  _/Type_ f ⊤ = ⊤
+  _/Type_ f ⊥ = ⊥
+  _/Type_ f [ decl ] = [ _/Decl_ f decl ]
+  _/Type_ f (τ₁ ∧ τ₂) = _/Type_ f τ₁ ∧ _/Type_ f τ₂
+  _/Type_ f (x ∙ A) = x ∙ A
+  _/Type_ f (μ τ) = μ (_/Type_ f τ)
+  _/Type_ f (ℿ τ ρ) = ℿ (_/Type_ f τ) (_/Type_ f ρ)
+  _/Type_ f (ƛ k τ) = ƛ (_/Kind_ f k) (_/Type_ f τ)
+  _/Type_ f (` x) = f x
+  _/Type_ f (g ⊡ τ) = _/Type_ f g ⊡ _/Type_ f τ
 
-  substTypeInDecl : (Var → Type) → Decl → Decl
-  substTypeInDecl f (typ A ∶ k) = typ A ∶ substTypeInKind f k
-  substTypeInDecl f (val ℓ ∶ τ) = val ℓ ∶ substTypeInType f τ
+  _/Decl_ : (Var → Type) → Decl → Decl
+  _/Decl_ f (typ A ∶ k) = typ A ∶ _/Kind_ f k
+  _/Decl_ f (val ℓ ∶ τ) = val ℓ ∶ _/Type_ f τ
 
-  substTypeInTerm : (Var → Type) → Term → Term
-  substTypeInTerm f (` x) = ` x
-  substTypeInTerm f (V vl) = V (substTypeInVal f vl)
-  substTypeInTerm f (a ∙ b) = a ∙ b
-  substTypeInTerm f (a ⊡ b) = a ⊡ b
-  substTypeInTerm f (let' t1 in' t2) = let' (substTypeInTerm f t1) in' (substTypeInTerm f t2)
-  substTypeInTerm f (lettype τ in' t) = lettype (substTypeInType f τ) in' (substTypeInTerm f t)
+  _/Term_ : (Var → Type) → Term → Term
+  _/Term_ f (` x) = ` x
+  _/Term_ f (V vl) = V (_/Val_ f vl)
+  _/Term_ f (a ∙ b) = a ∙ b
+  _/Term_ f (a ⊡ b) = a ⊡ b
+  _/Term_ f (let' t1 in' t2) = let' (_/Term_ f t1) in' (_/Term_ f t2)
+  _/Term_ f (lettype τ in' t) = lettype (_/Type_ f τ) in' (_/Term_ f t)
 
-  substTypeInVal : (Var → Type) → Val → Val
-  substTypeInVal f (ƛ τ e) = ƛ τ (substTypeInTerm f e)
-  substTypeInVal f (new τ defns) = new (substTypeInType f τ) (mapf defns)
+  _/Val_ : (Var → Type) → Val → Val
+  _/Val_ f (ƛ τ e) = ƛ τ (_/Term_ f e)
+  _/Val_ f (new τ defns) = new (_/Type_ f τ) (mapf defns)
     where
       mapf : List Defn → List Defn
       mapf [] = []
-      mapf (defn ∷ defns) = substTypeInDefn f defn ∷ mapf defns
+      mapf (defn ∷ defns) = _/Defn_ f defn ∷ mapf defns
 
-  substTypeInDefn : (Var → Type) → Defn → Defn
-  substTypeInDefn f (typ A =' τ) = typ A =' (substTypeInType f τ)
-  substTypeInDefn f (val ℓ =' e) = val ℓ =' (substTypeInTerm f e)
+  _/Defn_ : (Var → Type) → Defn → Defn
+  _/Defn_ f (typ A =' τ) = typ A =' (_/Type_ f τ)
+  _/Defn_ f (val ℓ =' e) = val ℓ =' (_/Term_ f e)
 
-open Subst (record {lift = KindLift; var = id; subst = liftKind}) renaming
+open Subst (record {lift = KindLift; var = `; subst = _/Kind_}) renaming
   ( openT to openKind
   ; closeT to closeKind
   ; wkT to wkKind
@@ -179,7 +179,7 @@ open Subst (record {lift = KindLift; var = id; subst = liftKind}) renaming
   hiding (bindVar)
   public
 
-open Subst (record {lift = TermLift; var = id; subst = liftTerm}) renaming
+open Subst (record {lift = TermLift; var = `; subst = _/Term_}) renaming
   ( openT to openTerm
   ; closeT to closeTerm
   ; wkT to wkTerm
@@ -190,7 +190,7 @@ open Subst (record {lift = TermLift; var = id; subst = liftTerm}) renaming
   hiding (bindVar)
   public
 
-open Subst (record {lift = TypeLift; var = id; subst = liftType}) renaming
+open Subst (record {lift = TypeLift; var = `; subst = _/Type_}) renaming
   ( openT to openType
   ; closeT to closeType
   ; wkT to wkType
@@ -201,7 +201,7 @@ open Subst (record {lift = TypeLift; var = id; subst = liftType}) renaming
   hiding (bindVar)
   public
 
-open Subst (record {lift = DefnLift; var = id; subst = liftDefn}) renaming
+open Subst (record {lift = DefnLift; var = `; subst = _/Defn_}) renaming
   ( openT to openDefn
   ; closeT to closeDefn
   ; wkT to wkDefn
