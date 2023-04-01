@@ -91,10 +91,9 @@ mutual
     k-typ-# : ∀{A k} →
       Γ ⊢# k kd →
       Γ ⊢#ty [ typ A ∶ k ] ∈ ✶
-    k-sel-# : ∀{A x τ k} →
+    k-sel-# : ∀{A x U τ k} →
       Γ ⊢#ty τ ∈ k →
-      -- TODO
-      Γ ⊢#tm ` x ∈ [ typ A ∶ (S[ τ ∈ k ]) ] →
+      Γ ⊢!var x ∈ U ⟫ [ typ A ∶ (S[ τ ∈ k ]) ] →
       Γ ⊢#ty x ∙ A ∈ S[ τ ∈ k ]
 
   data _⊢#kd_≤_ (Γ : Context) : Kind → Kind → Set where
@@ -158,8 +157,8 @@ mutual
       Γ ⊢#tm ` x ∈ [ val ℓ ∶ τ ] →
       Γ ⊢#tm x ∙ ℓ ∈ τ
     ty-let-# : ∀{e₁ e₂ x τ ρ} →
-      Γ ⊢tm e₁ ∈ τ →
-      Γ & x ~ Ty τ ⊢#tm (openTerm x e₂) ∈ ρ →
+      Γ ⊢#tm e₁ ∈ τ →
+      Γ & x ~ Ty τ ⊢tm (openTerm x e₂) ∈ ρ →
       Γ ⊢#tm (let' e₁ in' e₂) ∈ ρ
     ty-rec-intro-# : ∀{x τ} →
       Γ ⊢#tm ` x ∈ bindType (` x) τ →
@@ -173,3 +172,6 @@ mutual
     ty-sub-# : ∀{e τ₁ τ₂} →
       Γ ⊢#tm e ∈ τ₁ → Γ ⊢#ty τ₁ ≤ τ₂ ∈ ✶ →
       Γ ⊢#tm e ∈ τ₂
+
+  data _⊢!var_∈_⟫_ (Γ : Ctx VarFact) : Var → Type → Type → Set where
+    var-! : ∀{x τ} → Γ [ x ]⊢> Ty τ → Γ ⊢!var Free x ∈ τ ⟫ τ
