@@ -2,10 +2,10 @@ module Data.Context where
 
 open import Data.Nat using (ℕ; suc; zero)
 open import Data.String using (String; _==_; _≟_)
-open import Data.Bool using (if_then_else_)
+open import Data.Bool using (if_then_else_; true; false)
 open import Data.List using (List; []; _∷_; map)
-open import Data.Empty using (⊥-elim) renaming (⊥ to Void)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Data.Empty using (⊥-elim)
+open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary using (yes; no)
 
 open import Data.Var using (Name; N; Lift)
@@ -33,23 +33,27 @@ _&_~_ {{TLift}} Γ x τ = E x τ ∷ map (shiftEntry {{TLift}} x) Γ
 
 infix 20 _[_]⊢>_
 
-_[_]⊢>_ : ∀ {T} {{_ : Lift T}} → Ctx T → Name → T → Set
-_[_]⊢>_ [] _ _ = Void
-_[_]⊢>_ {{TLift}} (E x τ ∷ Γ) (name@(N y zero)) τ' =
-  if x == y then τ ≡ τ' else Γ [ name ]⊢> τ'
-_[_]⊢>_ {{TLift}} (E x τ ∷ Γ) (name@(N y (suc i))) τ' =
-  if x == y then Γ [ N y i ]⊢> τ' else Γ [ name ]⊢> τ'
+data _[_]⊢>_ {T} {{_ : Lift T}} : Ctx T → Name → T → Set where
+  bind-hd : ∀{Γ x τ} → (E x τ ∷ Γ) [ N x zero ]⊢> τ
+  bind-tl-xx : ∀{Γ x τ ρ i} →
+    Γ [ N x i ]⊢> τ →
+    (E x ρ ∷ Γ) [ N x (suc i) ]⊢> τ
+  bind-tl-xy : ∀{Γ x y τ ρ i} →
+    Γ [ N x i ]⊢> τ →
+    x ≢ y →
+    (E y ρ ∷ Γ) [ N x i ]⊢> τ
 
-hd-replace-zero : ∀ {T} {{_ : Lift T}} (Γ : Ctx T) {x y τ} τ₁ τ₂ →
-  (Γ & x ~ τ₁) [ N y zero ]⊢> τ → x ≢ y →
-  (Γ & x ~ τ₂) [ N y zero ]⊢> τ
-hd-replace-zero {_} Γ {x} {y} τ₁ τ₂ proof x≢y with x ≟ y
-... | yes x≡y = ⊥-elim (x≢y x≡y)
-... | no _ = proof
-
-hd-replace-suc : ∀ {T} {{_ : Lift T}} (Γ : Ctx T) {x y i τ} τ₁ τ₂ →
-  (Γ & x ~ τ₁) [ N y (suc i) ]⊢> τ →
-  (Γ & x ~ τ₂) [ N y (suc i) ]⊢> τ
-hd-replace-suc {_} Γ {x} {y} τ₁ τ₂ proof with x ≟ y
-... | yes x≡y rewrite x≡y = proof
-... | no _ = proof
+replace : ∀ {T} {{_ : Lift T}} (Γ : Ctx T) name {τ} →
+  T → Γ [ name ]⊢> τ → Ctx T
+replace {T} {{TLift}} [] _ _ ()
+replace {T} {{TLift}} (E y ρ ∷ Γ) name@(N x zero) τ proof
+  with x ≟ y | proof
+... | yes x≡y | bind-hd = E x τ ∷ Γ
+... | yes x≡y | bind-tl-xy Γ[x]⊢>τ x≢y = ⊥-elim (x≢y x≡y)
+... | no x≢y | bind-hd = ⊥-elim (x≢y refl)
+... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ = E x ρ ∷ replace Γ name τ Γ[x]⊢>τ
+replace {T} {{TLift}} (E x ρ ∷ Γ) name@(N y (suc i)) τ proof with x ≟ y | proof
+... | yes x≡y | bind-tl-xx Γ[y]⊢>τ' = E x ρ ∷ replace Γ (N y i) τ Γ[y]⊢>τ'
+... | yes x≡y | bind-tl-xy _ y≢x = ⊥-elim (y≢x (sym x≡y))
+... | no x≢y | bind-tl-xx _ = ⊥-elim (x≢y refl)
+... | no x≢y | bind-tl-xy Γ[y]⊢>τ' _ = E x ρ ∷ replace Γ name τ Γ[y]⊢>τ'
