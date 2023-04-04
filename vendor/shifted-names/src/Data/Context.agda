@@ -51,9 +51,9 @@ replace {T} {{TLift}} (E y ρ ∷ Γ) name@(N x zero) τ proof
 ... | yes x≡y | bind-hd = E x τ ∷ Γ
 ... | yes x≡y | bind-tl-xy Γ[x]⊢>τ x≢y = ⊥-elim (x≢y x≡y)
 ... | no x≢y | bind-hd = ⊥-elim (x≢y refl)
-... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ = E x ρ ∷ replace Γ name τ Γ[x]⊢>τ
-replace {T} {{TLift}} (E x ρ ∷ Γ) name@(N y (suc i)) τ proof with x ≟ y | proof
-... | yes x≡y | bind-tl-xx Γ[y]⊢>τ' = E x ρ ∷ replace Γ (N y i) τ Γ[y]⊢>τ'
-... | yes x≡y | bind-tl-xy _ y≢x = ⊥-elim (y≢x (sym x≡y))
+... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ = E y ρ ∷ replace Γ name τ Γ[x]⊢>τ
+replace {T} {{TLift}} (E y ρ ∷ Γ) name@(N x (suc i)) τ proof with x ≟ y | proof
+... | yes x≡y | bind-tl-xx Γ[x]⊢>τ' = E y ρ ∷ replace Γ (N y i) τ Γ[x]⊢>τ'
+... | yes x≡y | bind-tl-xy _ x≢y = ⊥-elim (x≢y x≡y)
 ... | no x≢y | bind-tl-xx _ = ⊥-elim (x≢y refl)
-... | no x≢y | bind-tl-xy Γ[y]⊢>τ' _ = E x ρ ∷ replace Γ name τ Γ[y]⊢>τ'
+... | no x≢y | bind-tl-xy Γ[x]⊢>τ' _ = E y ρ ∷ replace Γ name τ Γ[x]⊢>τ'

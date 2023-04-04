@@ -1,6 +1,6 @@
 module Data.Var.Base where
 
-open import Data.Nat using (ℕ; suc; zero)
+open import Data.Nat using (ℕ; suc; zero; _<_; z≤n; s≤s)
 open import Data.String using (String; _==_)
 open import Data.Bool using (if_then_else_)
 open import Level using (Level)
