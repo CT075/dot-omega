@@ -15,23 +15,60 @@ open import Data.Var
 
 open ≡-Reasoning
 
-bump-name : ∀ x y i → Name.name (bump x (N y i)) ≡ y
-bump-name x y i with x ≟ y
-... | yes x≡y rewrite x≡y = refl
-... | no x≢y = refl
+==-refl : ∀ (x : String) → (x == x) ≡ true
+==-refl x with x ≟ x
+... | yes p = refl
+... | no ¬p = ⊥-elim (¬p refl)
+
+if-both-branches : ∀ {a : Set} c (t : a) → (if c then t else t) ≡ t
+if-both-branches true t = refl
+if-both-branches false t = refl
+
+if-else-subst : ∀{a : Set} x y (f : String → a) (t : a) →
+    (if x == y then f x else t)
+  ≡ (if x == y then f y else t)
+if-else-subst x y f t with x ≟ y
+... | yes p rewrite p = refl
+... | no ¬p = refl
+
+nested-if-same-cond-if : ∀ {a : Set} c (t1 : a) {t2} t3 →
+    (if c then (if c then t1 else t2) else t3)
+  ≡ (if c then t1 else t3)
+nested-if-same-cond-if true t1 {t2} t3 = refl
+nested-if-same-cond-if false t1 {t2} t3 = refl
+
+nested-if-same-cond-else : ∀ {a : Set} c (t1 : a) {t2} t3 →
+    (if c then t1 else (if c then t2 else t3))
+  ≡ (if c then t1 else t3)
+nested-if-same-cond-else true t1 {t2} t3 = refl
+nested-if-same-cond-else false t1 {t2} t3 = refl
 
 open-close-id : ∀ x v → openVar x (closeVar x v) ≡ v
 open-close-id x (Bound n) = refl
-open-close-id x (Free (N y zero)) with x ≟ y | y ≟ x
-... | yes x≡y | yes y≡x rewrite x≡y = refl
-... | no x≢y | no y≢x = {! begin
-        openVar x (closeVar x (Free (N y zero)))
-      ≡⟨ refl ⟩
-        openVar x (lower Free (Bound zero) x (N y zero))
-      ≡⟨ refl ⟩
-        Free (N y zero)
-      ∎!}
-{-
+open-close-id x (Free (N y zero)) = begin
+    openVar x (closeVar x (Free (N y zero)))
+  ≡⟨ refl ⟩
+    openVar x (lower Free (Bound zero) x (N y zero))
+  ≡⟨ refl ⟩
+    openVar x (if x == y then Bound zero else Free (N y zero))
+  ≡⟨ push-function-into-if (openVar x) (x == y) {Bound zero} {Free (N y zero)} ⟩
+    (if x == y then openVar x (Bound zero) else openVar x (Free (N y zero)))
+  ≡⟨ refl ⟩
+    (if x == y then Free (N x zero) else Free (bump x (N y zero)))
+  ≡⟨ refl ⟩
+    (if x == y then Free (N x zero) else Free (if x == y then N y (suc zero) else N y zero))
+  ≡⟨ cong
+       (λ t → if x == y then Free (N x zero) else t)
+       (push-function-into-if Free (x == y) {N y (suc zero)} {N y zero})
+   ⟩
+    (if x == y then Free (N x zero) else (if x == y then Free (N y (suc zero)) else Free (N y zero)))
+  ≡⟨ nested-if-same-cond-else (x == y) (Free (N x zero)) (Free (N y zero)) ⟩
+    (if x == y then Free (N x zero) else Free (N y zero))
+  ≡⟨ if-else-subst x y (λ x → Free (N x zero)) (Free (N y zero)) ⟩
+    (if x == y then Free (N y zero) else Free (N y zero))
+  ≡⟨ if-both-branches (x == y) (Free (N y zero)) ⟩
+    Free (N y zero)
+  ∎
 open-close-id x (Free (N y (suc i))) = begin
     openVar x (closeVar x (Free (N y (suc i))))
   ≡⟨ refl ⟩
@@ -130,7 +167,6 @@ close-open-id x (Free (N y (suc i))) = begin
   ≡⟨ if-both-branches (x == y) (Free (N y (suc i))) ⟩
     Free (N y (suc i))
   ∎
--}
 
 module _ {ℓ} (T : Set ℓ) (S : Set ℓ) (subst : Subst T S) where
   open Subst subst
