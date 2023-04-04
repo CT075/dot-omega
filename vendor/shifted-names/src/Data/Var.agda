@@ -4,10 +4,11 @@
 module Data.Var where
 
 open import Data.Nat using (ℕ; suc; zero; _<_; z≤n; s≤s)
-open import Data.String using (String; _==_)
+open import Data.String using (String; _≟_)
 open import Data.Bool using (if_then_else_)
 open import Level using (Level)
 open import Relation.Unary using (Pred)
+open import Relation.Nullary using (yes; no)
 
 record Name : Set where
   constructor N
@@ -16,11 +17,17 @@ record Name : Set where
     index : ℕ
 
 bump : String → Name → Name
-bump x (N y i) = if x == y then N y (suc i) else N y i
+bump x (N y i) with x ≟ y
+... | yes _ = N y (suc i)
+... | no _ = N y i
 
 lower : ∀{T : Set} → (Name → T) → T → String → Name → T
-lower free bzero x (N y zero) = if x == y then bzero else free (N y zero)
-lower free bzero x (N y (suc i)) = if x == y then free (N y i) else free (N y (suc i))
+lower free bzero x (N y zero) with x ≟ y
+... | yes _ = bzero
+... | no _ = free (N y zero)
+lower free bzero x (N y (suc i)) with x ≟ y
+... | yes _ = free (N y i)
+... | no _ = free (N y (suc i))
 
 -- Shifted names are a variation on locally-nameless types, in which each name
 -- is annotated with an index marking how many times it's been shadowed.
