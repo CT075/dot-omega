@@ -32,6 +32,8 @@ map-proof f bind-hd = bind-hd
 map-proof f (bind-tl-xx Γ[x]⊢>τ) = bind-tl-xx (map-proof f Γ[x]⊢>τ)
 map-proof f (bind-tl-xy Γ[x]⊢>τ x≢y) = bind-tl-xy (map-proof f Γ[x]⊢>τ) x≢y
 
+open ≡-Reasoning
+
 private
   weaken-xx : ∀ {T} ⦃ _ : Lift T ⦄ (Γ : Ctx T) x {i} {τ} τ' →
     Γ [ N x i ]⊢> τ →
@@ -47,16 +49,36 @@ private
 weaken : ∀ {T} ⦃ _ : Lift T ⦄ (Γ : Ctx T) name y {τ} τ' →
   Γ [ name ]⊢> τ →
   Γ & y ~ τ' [ bump y name ]⊢> shiftT y τ
-weaken Γ (N x i) y τ' Γ[n]⊢>τ with x ≟ y
-... | yes x≡y rewrite x≡y = {! weaken-xx Γ y τ' Γ[n]⊢>τ !}
+weaken Γ (N x i) y {τ} τ' Γ[n]⊢>τ with x ≟ y
+... | yes x≡y rewrite x≡y = proof
   where
-    foo : bump y (N y i) ≡ N y (suc i)
-    foo with y ≟ y
+    bump-spec : bump y (N y i) ≡ N y (suc i)
+    bump-spec with y ≟ y
     ... | yes _ = refl
     ... | no y≢y = ⊥-elim (y≢y refl)
-... | no x≢y = {! weaken-xx Γ x τ' Γ[n]⊢>τ !}
 
-open ≡-Reasoning
+    proof : Γ & y ~ τ' [ bump y (N y i) ]⊢> shiftT y τ
+    proof rewrite bump-spec = weaken-xx Γ y τ' Γ[n]⊢>τ
+... | no x≢y = proof
+  where
+    y!=x : (y == x) ≡ false
+    y!=x with y ≟ x
+    ... | yes y≡x = ⊥-elim (x≢y (sym y≡x))
+    ... | no y≢x = refl
+
+    bump-spec : bump y (N x i) ≡ N x i
+    bump-spec = begin
+        bump y (N x i)
+      ≡⟨ refl ⟩
+        (if y == x then N x (suc i) else N x i)
+      ≡⟨ cong (λ t → if t then N x (suc i) else N x i) y!=x ⟩
+        (if false then N x (suc i) else N x i)
+      ≡⟨ refl ⟩
+        N x i
+      ∎
+
+    proof : Γ & y ~ τ' [ bump y (N x i) ]⊢> shiftT y τ
+    proof rewrite bump-spec = weaken-xy Γ x y τ' Γ[n]⊢>τ x≢y
 
 private
   replace-spec-xx : ∀ {T} ⦃ _ : Lift T ⦄ (Γ : Ctx T) name τ {τ'} →
