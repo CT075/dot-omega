@@ -11,7 +11,7 @@ open import Relation.Binary.PropositionalEquality as PropEq
 open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Nullary.Decidable using (map′; isYes)
 
-open import Data.Var.Base
+open import Data.Var
 
 open ≡-Reasoning
 
