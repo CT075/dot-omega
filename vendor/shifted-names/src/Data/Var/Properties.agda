@@ -1,24 +1,54 @@
 module Data.Var.Properties where
 
+open import Level using (Level)
 open import Data.Fin using (Fin; suc; zero)
 open import Data.Nat using (ℕ; suc; zero)
-open import Data.String using (String; _==_; _≟_)
+open import Data.Nat.Properties renaming (_≟_ to _≟ℕ_)
+open import Data.String using (String; _==_) renaming (_≟_ to _≟String_)
 open import Data.String.Properties using (≈⇒≡; ≈-refl)
 open import Data.Bool using (if_then_else_; true; false)
 open import Data.Bool.Properties using (push-function-into-if)
 open import Data.Empty using (⊥-elim)
+open import Relation.Binary using (Decidable)
 open import Relation.Binary.PropositionalEquality as PropEq
-open import Relation.Nullary using (Dec; yes; no)
+open import Relation.Nullary using (yes; no)
 open import Relation.Nullary.Decidable using (map′; isYes)
 
 open import Data.Var
 
 open ≡-Reasoning
 
-==-refl : ∀ (x : String) → (x == x) ≡ true
-==-refl x with x ≟ x
-... | yes p = refl
-... | no ¬p = ⊥-elim (¬p refl)
+private
+  extract-N-x-≡ : ∀ {x y i j} → N x i ≡ N y j → x ≡ y
+  extract-N-x-≡ {x} {.x} refl = refl
+
+  extract-N-i-≡ : ∀ {x y i j} → N x i ≡ N y j → i ≡ j
+  extract-N-i-≡ {x} {.x} refl = refl
+
+  ==-refl : ∀ (x : String) → (x == x) ≡ true
+  ==-refl x with x ≟String x
+  ... | yes p = refl
+  ... | no ¬p = ⊥-elim (¬p refl)
+
+  cong2 : ∀{α β γ : Level} {A : Set α} {B : Set β} {C : Set γ}
+    {a₁ a₂ : A} {b₁ b₂ : B} →
+    (f : A → B → C) →
+    a₁ ≡ a₂ →
+    b₁ ≡ b₂ →
+    f a₁ b₁ ≡ f a₂ b₂
+  cong2 {a₁ = a₁} {a₂ = a₂} {b₁ = b₁} {b₂ = b₂} f a₁≡a₂ b₁≡b₂ = begin
+      f a₁ b₁
+    ≡⟨ cong (λ a → f a b₁) a₁≡a₂ ⟩
+      f a₂ b₁
+    ≡⟨ cong (f a₂) b₁≡b₂ ⟩
+      f a₂ b₂
+    ∎
+
+_≟_ : Decidable (_≡_ {_} {Name})
+N x i ≟ N y j with x ≟String y | i ≟ℕ j
+... | yes x≡y | yes i≡j = yes (cong2 N x≡y i≡j)
+... | no x≢y | _ = no (λ Nxi≡Nyj → x≢y (extract-N-x-≡ Nxi≡Nyj))
+... | _ | no i≢j = no (λ Nxi≡Nyj → i≢j (extract-N-i-≡ Nxi≡Nyj))
 
 if-both-branches : ∀ {a : Set} c (t : a) → (if c then t else t) ≡ t
 if-both-branches true t = refl
@@ -27,7 +57,7 @@ if-both-branches false t = refl
 if-else-subst : ∀{a : Set} x y (f : String → a) (t : a) →
     (if x == y then f x else t)
   ≡ (if x == y then f y else t)
-if-else-subst x y f t with x ≟ y
+if-else-subst x y f t with x ≟String y
 ... | yes p rewrite p = refl
 ... | no ¬p = refl
 

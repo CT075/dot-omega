@@ -13,13 +13,13 @@ open import Data.Var
 open import Data.Context
 
 private
+  -- TODO: un-copy-paste these from Data.Var.Properties
   extract-N-x-≡ : ∀ {x y i j} → N x i ≡ N y j → x ≡ y
   extract-N-x-≡ {x} {.x} refl = refl
 
   extract-N-i-≡ : ∀ {x y i j} → N x i ≡ N y j → i ≡ j
   extract-N-i-≡ {x} {.x} refl = refl
 
-  -- TODO: un-copy-paste this from Data.Var.Properties
   ==-refl : ∀ (x : String) → (x == x) ≡ true
   ==-refl x with x ≟ x
   ... | yes p = refl
@@ -121,7 +121,7 @@ private
   ... | no x≢y | bind-tl-xy _ _ | bind-hd = bind-hd
   ... | no x≢y
       | bind-tl-xy Γ[x]⊢>τ _
-      | bind-tl-xx {_} {_} {_} {_} {i'} Γ[x']⊢>τ' =
+      | bind-tl-xx {i = i'} Γ[x']⊢>τ' =
         bind-tl-xx
           (replace-spec-xy Γ name (N x' i') τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' name≢pname')
         where
@@ -143,7 +143,7 @@ private
   ... | yes x≡y | bind-tl-xx Γ[x]⊢>τ | bind-hd = bind-hd
   ... | yes x≡y
       | bind-tl-xx Γ[x]⊢>τ
-      | bind-tl-xx {_} {_} {_} {_} {i'} Γ[x']⊢>τ' =
+      | bind-tl-xx {i = i'} Γ[x']⊢>τ' =
         bind-tl-xx
           (replace-spec-xy Γ (N x i) (N x' i') τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' pname≢pname')
         where
@@ -162,7 +162,7 @@ private
   ... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ | bind-hd = bind-hd
   ... | no x≢y
       | bind-tl-xy Γ[x]⊢>τ _
-      | bind-tl-xx {_} {_} {_} {_} {i'} Γ[x']⊢>τ' =
+      | bind-tl-xx {i = i'} Γ[x']⊢>τ' =
         bind-tl-xx
           (replace-spec-xy Γ name (N x' i') τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' name≢pname')
         where
