@@ -80,95 +80,106 @@ weaken Γ (N x i) y {τ} τ' Γ[n]⊢>τ with x ≟ y
     proof : Γ & y ~ τ' [ bump y (N x i) ]⊢> shiftT y τ
     proof rewrite bump-spec = weaken-xy Γ x y τ' Γ[n]⊢>τ x≢y
 
-private
-  replace-spec-xx : ∀ {T} ⦃ _ : Lift T ⦄ (Γ : Ctx T) name τ {τ'} →
-    (name∈Γ : Γ [ name ]⊢> τ') →
-    replace Γ name τ name∈Γ [ name ]⊢> τ
-  replace-spec-xx {T} ⦃ TLift ⦄ (E y ρ ∷ Γ) name@(N x zero) τ name∈Γ
-    with x ≟ y | name∈Γ
-  ... | yes x≡y | bind-hd = bind-hd
-  ... | yes x≡y | bind-tl-xy _ x≢y = ⊥-elim (x≢y x≡y)
-  ... | no x≢y | bind-hd = ⊥-elim (x≢y refl)
-  ... | no x≢y | bind-tl-xy Γ[x]⊢>τ' x≢y =
-    bind-tl-xy (replace-spec-xx Γ (N x zero) τ Γ[x]⊢>τ') x≢y
-  replace-spec-xx {T} ⦃ TLift ⦄ (E y ρ ∷ Γ) name@(N x (suc i)) τ name∈Γ
-    with x ≟ y | name∈Γ
-  ... | yes x≡y | bind-tl-xx Γ[x]⊢>τ' =
-    bind-tl-xx (replace-spec-xx Γ (N x i) τ Γ[x]⊢>τ')
-  ... | yes x≡y | bind-tl-xy _ x≢y = ⊥-elim (x≢y x≡y)
-  ... | no x≢y | bind-tl-xx Γ[x]⊢>τ' = ⊥-elim (x≢y refl)
-  ... | no x≢y | bind-tl-xy Γ[x]⊢>τ' _ =
-    bind-tl-xy (replace-spec-xx Γ name τ Γ[x]⊢>τ') x≢y
+replace-spec-xx : ∀ {T} ⦃ _ : Lift T ⦄ (Γ : Ctx T) name τ {τ'} →
+  (name∈Γ : Γ [ name ]⊢> τ') →
+  replace Γ name τ name∈Γ [ name ]⊢> τ
+replace-spec-xx {T} ⦃ TLift ⦄ (E y ρ ∷ Γ) name@(N x zero) τ name∈Γ
+  with x ≟ y | name∈Γ
+... | yes x≡y | bind-hd = bind-hd
+... | yes x≡y | bind-tl-xy _ x≢y = ⊥-elim (x≢y x≡y)
+... | no x≢y | bind-hd = ⊥-elim (x≢y refl)
+... | no x≢y | bind-tl-xy Γ[x]⊢>τ' x≢y =
+  bind-tl-xy (replace-spec-xx Γ (N x zero) τ Γ[x]⊢>τ') x≢y
+replace-spec-xx {T} ⦃ TLift ⦄ (E y ρ ∷ Γ) name@(N x (suc i)) τ name∈Γ
+  with x ≟ y | name∈Γ
+... | yes x≡y | bind-tl-xx Γ[x]⊢>τ' =
+  bind-tl-xx (replace-spec-xx Γ (N x i) τ Γ[x]⊢>τ')
+... | yes x≡y | bind-tl-xy _ x≢y = ⊥-elim (x≢y x≡y)
+... | no x≢y | bind-tl-xx Γ[x]⊢>τ' = ⊥-elim (x≢y refl)
+... | no x≢y | bind-tl-xy Γ[x]⊢>τ' _ =
+  bind-tl-xy (replace-spec-xx Γ name τ Γ[x]⊢>τ') x≢y
 
-  replace-spec-xy : ∀ {T} ⦃ _ : Lift T ⦄ (Γ : Ctx T) name name' τ τ' →
-    (name∈Γ : Γ [ name ]⊢> τ) →
-    (name'∈Γ : Γ [ name' ]⊢> τ') →
-    name ≢ name' →
-    replace Γ name τ name∈Γ [ name' ]⊢> τ'
-  replace-spec-xy {T} ⦃ TLift ⦄
-      (E y ρ ∷ Γ)
-      name@(N x zero)
-      name'@(N x' i')
-      τ τ'
-      name∈Γ name'∈Γ
-      name≢name'
-    with x ≟ y | name∈Γ | name'∈Γ
-  ... | _ | bind-hd | bind-hd = ⊥-elim (name≢name' refl)
-  ... | yes x≡y | bind-hd | bind-tl-xx Γ[x']⊢>τ' = bind-tl-xx Γ[x']⊢>τ'
-  ... | yes x≡y | bind-hd | bind-tl-xy Γ[x']⊢>τ' x'≢y = bind-tl-xy Γ[x']⊢>τ' x'≢y
-  ... | yes x≡y | bind-tl-xy _ x≢y | _ = ⊥-elim (x≢y x≡y)
-  ... | no x≢y | bind-hd | _ = ⊥-elim (x≢y refl)
-  ... | no x≢y | bind-tl-xy _ _ | bind-hd = bind-hd
-  ... | no x≢y
-      | bind-tl-xy Γ[x]⊢>τ _
-      | bind-tl-xx {i = i'} Γ[x']⊢>τ' =
-        bind-tl-xx
-          (replace-spec-xy Γ name (N x' i') τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' name≢pname')
-        where
-          -- We can use [x≢y] here because [bind-tl-xx] forces [x' ≡ y]
-          name≢pname' : N x zero ≢ N x' i'
-          name≢pname' Nx0≡Nx'i' = x≢y (extract-N-x-≡ Nx0≡Nx'i')
-  ... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ | bind-tl-xy Γ[x']⊢>τ' x'≢y =
-          bind-tl-xy
-            (replace-spec-xy Γ name name' τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' name≢name')
-            x'≢y
-  replace-spec-xy {T} ⦃ TLift ⦄
-      (E y ρ ∷ Γ)
-      name@(N x (suc i))
-      name'@(N x' i')
-      τ τ'
-      name∈Γ name'∈Γ
-      name≢name'
-    with x ≟ y | name∈Γ | name'∈Γ
-  ... | yes x≡y | bind-tl-xx Γ[x]⊢>τ | bind-hd = bind-hd
-  ... | yes x≡y
-      | bind-tl-xx Γ[x]⊢>τ
-      | bind-tl-xx {i = i'} Γ[x']⊢>τ' =
-        bind-tl-xx
-          (replace-spec-xy Γ (N x i) (N x' i') τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' pname≢pname')
-        where
-          pname≢pname' : N x i ≢ N x' i'
-          pname≢pname' Nxi≡Nx'i' =
-            name≢name' (cong (N x ∘ suc) (extract-N-i-≡ Nxi≡Nx'i'))
-  ... | yes x≡y | bind-tl-xx Γ[x]⊢>τ | bind-tl-xy Γ[x']⊢>τ' x'≢y =
-        bind-tl-xy
-          (replace-spec-xy Γ (N x i) name' τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' pname≢name')
-          x'≢y
-        where
-          pname≢name' : N x i ≢ N x' i'
-          pname≢name' Nxi≡Nx'i' = x'≢y (extract-N-x-≡ (sym Nxi≡Nx'i'))
-  ... | yes x≡y | bind-tl-xy _ x≢y | _  = ⊥-elim (x≢y x≡y)
-  ... | no x≢y | bind-tl-xx _ | _ = ⊥-elim (x≢y refl)
-  ... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ | bind-hd = bind-hd
-  ... | no x≢y
-      | bind-tl-xy Γ[x]⊢>τ _
-      | bind-tl-xx {i = i'} Γ[x']⊢>τ' =
-        bind-tl-xx
-          (replace-spec-xy Γ name (N x' i') τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' name≢pname')
-        where
-          name≢pname' : N x (suc i) ≢ N x' i'
-          name≢pname' Nx0≡Nx'i' = x≢y (extract-N-x-≡ Nx0≡Nx'i')
-  ... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ | bind-tl-xy Γ[x']⊢>τ' x'≢y =
+replace-spec-xy : ∀ {T} ⦃ _ : Lift T ⦄ (Γ : Ctx T) name name' {ρ} τ τ' →
+  (name∈Γ : Γ [ name ]⊢> ρ) →
+  (name'∈Γ : Γ [ name' ]⊢> τ') →
+  name ≢ name' →
+  replace Γ name τ name∈Γ [ name' ]⊢> τ'
+replace-spec-xy {T} ⦃ TLift ⦄
+    (E y ρ ∷ Γ)
+    name@(N x zero)
+    name'@(N x' i')
+    τ τ'
+    name∈Γ name'∈Γ
+    name≢name'
+  with x ≟ y | name∈Γ | name'∈Γ
+... | _ | bind-hd | bind-hd = ⊥-elim (name≢name' refl)
+... | yes x≡y | bind-hd | bind-tl-xx Γ[x']⊢>τ' = bind-tl-xx Γ[x']⊢>τ'
+... | yes x≡y | bind-hd | bind-tl-xy Γ[x']⊢>τ' x'≢y = bind-tl-xy Γ[x']⊢>τ' x'≢y
+... | yes x≡y | bind-tl-xy _ x≢y | _ = ⊥-elim (x≢y x≡y)
+... | no x≢y | bind-hd | _ = ⊥-elim (x≢y refl)
+... | no x≢y | bind-tl-xy _ _ | bind-hd = bind-hd
+... | no x≢y
+    | bind-tl-xy Γ[x]⊢>τ _
+    | bind-tl-xx {i = i'} Γ[x']⊢>τ' =
+      bind-tl-xx
+        (replace-spec-xy Γ name (N x' i') τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' name≢pname')
+      where
+        -- We can use [x≢y] here because [bind-tl-xx] forces [x' ≡ y]
+        name≢pname' : N x zero ≢ N x' i'
+        name≢pname' Nx0≡Nx'i' = x≢y (extract-N-x-≡ Nx0≡Nx'i')
+... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ | bind-tl-xy Γ[x']⊢>τ' x'≢y =
         bind-tl-xy
           (replace-spec-xy Γ name name' τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' name≢name')
           x'≢y
+replace-spec-xy {T} ⦃ TLift ⦄
+    (E y ρ ∷ Γ)
+    name@(N x (suc i))
+    name'@(N x' i')
+    τ τ'
+    name∈Γ name'∈Γ
+    name≢name'
+  with x ≟ y | name∈Γ | name'∈Γ
+... | yes x≡y | bind-tl-xx Γ[x]⊢>τ | bind-hd = bind-hd
+... | yes x≡y
+    | bind-tl-xx Γ[x]⊢>τ
+    | bind-tl-xx {i = i'} Γ[x']⊢>τ' =
+      bind-tl-xx
+        (replace-spec-xy Γ (N x i) (N x' i') τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' pname≢pname')
+      where
+        pname≢pname' : N x i ≢ N x' i'
+        pname≢pname' Nxi≡Nx'i' =
+          name≢name' (cong (N x ∘ suc) (extract-N-i-≡ Nxi≡Nx'i'))
+... | yes x≡y | bind-tl-xx Γ[x]⊢>τ | bind-tl-xy Γ[x']⊢>τ' x'≢y =
+      bind-tl-xy
+        (replace-spec-xy Γ (N x i) name' τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' pname≢name')
+        x'≢y
+      where
+        pname≢name' : N x i ≢ N x' i'
+        pname≢name' Nxi≡Nx'i' = x'≢y (extract-N-x-≡ (sym Nxi≡Nx'i'))
+... | yes x≡y | bind-tl-xy _ x≢y | _  = ⊥-elim (x≢y x≡y)
+... | no x≢y | bind-tl-xx _ | _ = ⊥-elim (x≢y refl)
+... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ | bind-hd = bind-hd
+... | no x≢y
+    | bind-tl-xy Γ[x]⊢>τ _
+    | bind-tl-xx {i = i'} Γ[x']⊢>τ' =
+      bind-tl-xx
+        (replace-spec-xy Γ name (N x' i') τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' name≢pname')
+      where
+        name≢pname' : N x (suc i) ≢ N x' i'
+        name≢pname' Nx0≡Nx'i' = x≢y (extract-N-x-≡ Nx0≡Nx'i')
+... | no x≢y | bind-tl-xy Γ[x]⊢>τ _ | bind-tl-xy Γ[x']⊢>τ' x'≢y =
+      bind-tl-xy
+        (replace-spec-xy Γ name name' τ τ' Γ[x]⊢>τ Γ[x']⊢>τ' name≢name')
+        x'≢y
+
+lookup-unique : ∀{T} ⦃ _ : Lift T ⦄ {Γ : Ctx T} {x τ τ'} →
+  Γ [ x ]⊢> τ → Γ [ x ]⊢> τ' → τ ≡ τ'
+lookup-unique bind-hd bind-hd = refl
+lookup-unique (bind-tl-xx Γ[x]⊢>τ) (bind-tl-xx Γ[x]⊢>τ') =
+  lookup-unique Γ[x]⊢>τ Γ[x]⊢>τ'
+lookup-unique (bind-tl-xy Γ[x]⊢>τ _) (bind-tl-xy Γ[x]⊢>τ' _) =
+  lookup-unique Γ[x]⊢>τ Γ[x]⊢>τ'
+lookup-unique bind-hd (bind-tl-xy _ x≢y) = ⊥-elim (x≢y refl)
+lookup-unique (bind-tl-xx _) (bind-tl-xy _ x≢y) = ⊥-elim (x≢y refl)
+lookup-unique (bind-tl-xy _ x≢y) bind-hd = ⊥-elim (x≢y refl)
+lookup-unique (bind-tl-xy _ x≢y) (bind-tl-xx _) = ⊥-elim (x≢y refl)
