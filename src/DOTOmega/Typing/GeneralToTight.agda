@@ -1,7 +1,7 @@
 open import Level renaming (zero to lzero; suc to lsuc) hiding (Lift)
 open import Relation.Binary using (DecSetoid)
 
-module DOTOmega.GeneralToTight {ℓ}
+module DOTOmega.Typing.GeneralToTight {ℓ}
     (TypeL : DecSetoid lzero ℓ)
     (TermL : DecSetoid lzero ℓ)
   where
@@ -10,7 +10,7 @@ open import Data.Context
 
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing TypeL TermL
-open import DOTOmega.TightTyping TypeL TermL
+open import DOTOmega.Typing.Tight TypeL TermL
 
 st-β-premise : ∀ {Γ A B J K x} →
   Γ inert-ctx →

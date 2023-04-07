@@ -168,7 +168,9 @@ mutual
   _/Defn_ f (typ A =' τ) = typ A =' (_/Type_ f τ)
   _/Defn_ f (val ℓ =' e) = val ℓ =' (_/Term_ f e)
 
-open Subst (record {lift = KindLift; var = `; subst = _/Kind_}) renaming
+open Subst (record {lift = KindLift; var = `; subst = _/Kind_})
+  using ()
+  renaming
   ( openT to openKind
   ; closeT to closeKind
   ; wkT to wkKind
@@ -176,10 +178,11 @@ open Subst (record {lift = KindLift; var = `; subst = _/Kind_}) renaming
   ; renameT to renameKind
   ; bindT to bindKind
   )
-  hiding (bindVar)
   public
 
-open Subst (record {lift = TermLift; var = `; subst = _/Term_}) renaming
+open Subst (record {lift = TermLift; var = `; subst = _/Term_})
+  using ()
+  renaming
   ( openT to openTerm
   ; closeT to closeTerm
   ; wkT to wkTerm
@@ -187,10 +190,11 @@ open Subst (record {lift = TermLift; var = `; subst = _/Term_}) renaming
   ; renameT to renameTerm
   ; bindT to bindTerm
   )
-  hiding (bindVar)
   public
 
-open Subst (record {lift = TypeLift; var = `; subst = _/Type_}) renaming
+open Subst (record {lift = TypeLift; var = `; subst = _/Type_})
+  using ()
+  renaming
   ( openT to openType
   ; closeT to closeType
   ; wkT to wkType
@@ -198,10 +202,11 @@ open Subst (record {lift = TypeLift; var = `; subst = _/Type_}) renaming
   ; renameT to renameType
   ; bindT to bindType
   )
-  hiding (bindVar)
   public
 
-open Subst (record {lift = DefnLift; var = `; subst = _/Defn_}) renaming
+open Subst (record {lift = DefnLift; var = `; subst = _/Defn_})
+  using ()
+  renaming
   ( openT to openDefn
   ; closeT to closeDefn
   ; wkT to wkDefn
@@ -209,5 +214,19 @@ open Subst (record {lift = DefnLift; var = `; subst = _/Defn_}) renaming
   ; renameT to renameDefn
   ; bindT to bindDefn
   )
-  hiding (bindVar)
+  public
+
+open Subst (record {lift = KindLift; var = id; subst = liftKind})
+  using ()
+  renaming (bindT to plugKind)
+  public
+
+open Subst (record {lift = TypeLift; var = id; subst = liftType})
+  using ()
+  renaming (bindT to plugType)
+  public
+
+open Subst (record {lift = TermLift; var = id; subst = liftTerm})
+  using ()
+  renaming (bindT to plugTerm)
   public

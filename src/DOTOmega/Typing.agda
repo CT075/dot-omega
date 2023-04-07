@@ -128,6 +128,10 @@ mutual
       Γ & x ~ Kd J ⊢ty openType x A ∈ K →
       Γ ⊢ty B ∈ J →
       Γ ⊢ty bindType B A ≤ (ƛ J A) ⊡ B ∈ bindKind B K
+    st-app : ∀{A₁ A₂ B₁ B₂ J K} →
+      Γ ⊢ty A₁ ≤ A₂ ∈ ℿ J K →
+      Γ ⊢ty B₁ == B₂ ∈ J →
+      Γ ⊢ty A₁ ⊡ A₂ ≤ B₁ ⊡ B₂ ∈ bindKind B₁ K
     st-bnd₁ : ∀{A S U} → Γ ⊢ty A ∈ S ∙∙ U → Γ ⊢ty S ≤ A ∈ ✶
     st-bnd₂ : ∀{A S U} → Γ ⊢ty A ∈ S ∙∙ U → Γ ⊢ty A ≤ U ∈ ✶
 

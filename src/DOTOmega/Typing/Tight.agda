@@ -1,7 +1,7 @@
 open import Level renaming (zero to lzero; suc to lsuc) hiding (Lift)
 open import Relation.Binary using (DecSetoid)
 
-module DOTOmega.TightTyping {ℓ}
+module DOTOmega.Typing.Tight {ℓ}
     (TypeL : DecSetoid lzero ℓ)
     (TermL : DecSetoid lzero ℓ)
   where
@@ -9,14 +9,12 @@ module DOTOmega.TightTyping {ℓ}
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; map)
 
-open import Data.Var
-
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing TypeL TermL
+open import DOTOmega.Typing.Precise TypeL TermL
 
+open import Data.Var
 open import Data.Context
-
--- Tight typing
 
 infix 4 _⊢#_kd
 infix 4 _⊢#ty_∈_
@@ -172,6 +170,3 @@ mutual
     ty-sub-# : ∀{e τ₁ τ₂} →
       Γ ⊢#tm e ∈ τ₁ → Γ ⊢#ty τ₁ ≤ τ₂ ∈ ✶ →
       Γ ⊢#tm e ∈ τ₂
-
-  data _⊢!var_∈_⟫_ (Γ : Ctx VarFact) : Var → Type → Type → Set where
-    var-! : ∀{x τ} → Γ [ x ]⊢> Ty τ → Γ ⊢!var Free x ∈ τ ⟫ τ
