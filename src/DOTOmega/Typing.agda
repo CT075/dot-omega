@@ -67,16 +67,15 @@ mutual
       Γ ⊢ J kd →
       Γ & x ~ Kd J ⊢ty openType x A ∈ openKind x K →
       Γ ⊢ty ƛ J A ∈ ℿ J K
-    k-app : ∀{J K x f τ} →
+    k-app : ∀{J K f τ} →
       Γ ⊢ty f ∈ ℿ J K →
       Γ ⊢ty τ ∈ J →
-      Γ & x ~ Kd J ⊢ openKind x K kd →
-      Γ ⊢ bindKind τ K kd →
       Γ ⊢ty f ⊡ τ ∈ bindKind τ K
-    k-intersect : ∀{τ₁ τ₂ A B} →
-      Γ ⊢ty τ₁ ∈ A ∙∙ B →
-      Γ ⊢ty τ₂ ∈ A ∙∙ B →
-      Γ ⊢ty τ₁ ∧ τ₂ ∈ A ∙∙ B
+    k-intersect : ∀{τ₁ τ₂ S₁ U₁ S₂ U₂} →
+      Γ ⊢ty τ₁ ∈ S₁ ∙∙ U₁ →
+      Γ ⊢ty τ₂ ∈ S₂ ∙∙ U₂ →
+      -- TODO: lower bound should be union
+      Γ ⊢ty τ₁ ∧ τ₂ ∈ S₁ ∧ S₂ ∙∙ U₁ ∧ U₂
     k-sub : ∀{J K A} →
       Γ ⊢ty A ∈ J → Γ ⊢kd J ≤ K →
       Γ ⊢ty A ∈ K

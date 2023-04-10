@@ -25,10 +25,6 @@ infix 4 _⊢#tm_∈_
 
 infix 4 _inert-kd _inert-ty _inert-ctx
 
-S[_∈_] : Type → Kind → Kind
-S[ τ ∈ A ∙∙ B ] = τ ∙∙ τ
-S[ f ∈ ℿ J K ] = ℿ J (S[ f ⊡ `(Bound zero) ∈ K ])
-
 data _inert-kd : Kind → Set where
   intv-inert : ∀ {A} → A ∙∙ A inert-kd
   pi-inert : ∀ {J K} → K inert-kd → ℿ J K inert-kd
@@ -42,6 +38,10 @@ data _inert-ctx : Context → Set where
   cons-inert-ty : ∀ {Γ x τ} → Γ inert-ctx → τ inert-ty → Γ & x ~ Ty τ inert-ctx
   cons-inert-kd : ∀ {Γ x k} → Γ inert-ctx → k inert-kd → Γ & x ~ Kd k inert-ctx
 
+S[_∈_] : Type → Kind → Kind
+S[ τ ∈ A ∙∙ B ] = τ ∙∙ τ
+S[ f ∈ ℿ J K ] = ℿ J (S[ f ⊡ `(Bound zero) ∈ K ])
+
 mutual
   data _ctx-# : Context → Set where
     c-empty-# : [] ctx-#
@@ -52,7 +52,7 @@ mutual
     wf-intv-# : ∀{A B} → Γ ⊢#ty A ∈ ✶ → Γ ⊢#ty B ∈ ✶ → Γ ⊢# A ∙∙ B kd
     wf-darr-# : ∀{x J K} →
       Γ ⊢# J kd →
-      Γ & x ~ Kd J ⊢# (openKind x K) kd →
+      Γ & x ~ Kd J ⊢ (openKind x K) kd →
       Γ ⊢# ℿ J K kd
 
   data _⊢#ty_∈_ (Γ : Context) : Type → Kind → Set where
@@ -70,16 +70,15 @@ mutual
       Γ ⊢# J kd →
       Γ & x ~ Kd J ⊢ty openType x A ∈ openKind x K →
       Γ ⊢#ty ƛ J A ∈ ℿ J K
-    k-app-# : ∀{J K x f τ} →
+    k-app-# : ∀{J K f τ} →
       Γ ⊢#ty f ∈ ℿ J K →
       Γ ⊢#ty τ ∈ J →
-      Γ & x ~ Kd (S[ τ ∈ K ]) ⊢# openKind x K kd →
-      Γ ⊢# bindKind τ K kd →
       Γ ⊢#ty f ⊡ τ ∈ bindKind τ K
-    k-intersect-# : ∀{τ₁ τ₂ A B} →
-      Γ ⊢#ty τ₁ ∈ A ∙∙ B →
-      Γ ⊢#ty τ₂ ∈ A ∙∙ B →
-      Γ ⊢#ty τ₁ ∧ τ₂ ∈ A ∙∙ B
+    k-intersect-# : ∀{τ₁ τ₂ S₁ U₁ S₂ U₂} →
+      Γ ⊢#ty τ₁ ∈ S₁ ∙∙ U₁ →
+      Γ ⊢#ty τ₂ ∈ S₂ ∙∙ U₂ →
+      -- TODO: lower bound should be union
+      Γ ⊢#ty τ₁ ∧ τ₂ ∈ S₁ ∧ S₂ ∙∙ U₁ ∧ U₂
     k-sub-# : ∀{J K A} →
       Γ ⊢#ty A ∈ J → Γ ⊢#kd J ≤ K →
       Γ ⊢#ty A ∈ K
@@ -91,7 +90,7 @@ mutual
       Γ ⊢#ty [ typ A ∶ k ] ∈ ✶
     k-sel-# : ∀{A x U τ k} →
       Γ ⊢#ty τ ∈ k →
-      Γ ⊢!var x ∈ U ⟫ [ typ A ∶ (S[ τ ∈ k ]) ] →
+      Γ ⊢!var x ∈ U ⟫ [ typ A ∶ S[ τ ∈ k ] ] →
       Γ ⊢#ty x ∙ A ∈ S[ τ ∈ k ]
 
   data _⊢#kd_≤_ (Γ : Context) : Kind → Kind → Set where
@@ -132,8 +131,12 @@ mutual
       Γ ⊢#ty B ∈ J →
       Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ K →
       Γ ⊢#ty bindType B A ≤ (ƛ J A) ⊡ B ∈ bindKind B K
-    st-bnd₁ : ∀{A S U} → Γ ⊢#ty A ∈ S ∙∙ U → Γ ⊢#ty S ≤ A ∈ ✶
-    st-bnd₂ : ∀{A S U} → Γ ⊢#ty A ∈ S ∙∙ U → Γ ⊢#ty A ≤ U ∈ ✶
+    st-app-# : ∀{A₁ A₂ B₁ B₂ J K} →
+      Γ ⊢#ty A₁ ≤ A₂ ∈ ℿ J K →
+      Γ ⊢#ty B₁ == B₂ ∈ J →
+      Γ ⊢#ty A₁ ⊡ A₂ ≤ B₁ ⊡ B₂ ∈ bindKind B₁ K
+    st-bnd₁-# : ∀{A S U} → Γ ⊢#ty A ∈ S ∙∙ U → Γ ⊢#ty S ≤ A ∈ ✶
+    st-bnd₂-# : ∀{A S U} → Γ ⊢#ty A ∈ S ∙∙ U → Γ ⊢#ty A ≤ U ∈ ✶
 
   -- Type equality
   data _⊢#ty_==_∈_ (Γ : Context) : Type → Type → Kind → Set where
