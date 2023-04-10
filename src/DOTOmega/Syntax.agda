@@ -17,6 +17,7 @@ open import Data.Var using (Var; Lift; Subst)
 TypeLabel = DecSetoid.Carrier TypeL
 TermLabel = DecSetoid.Carrier TermL
 
+infix 19 typ_∶_
 infix 20 _∙∙_
 infix 21 _∧_
 
