@@ -28,8 +28,8 @@ data _⊢!var_∈_⟫_ (Γ : Ctx VarFact) : Var → Type → Type → Set where
     Γ ⊢!var Free x ∈ τ ⟫ S ∧ U → Γ ⊢!var Free x ∈ τ ⟫ U
 
 data _⊢!val_∈_ (Γ : Ctx VarFact) : Val → Type → Set where
-  all-I-! : ∀{x τ t U} →
-    Γ & x ~ Ty τ ⊢tm t ∈ U →
+  fun-I-! : ∀{x τ t U} →
+    Γ & x ~ Ty τ ⊢tm openTerm x t ∈ openType x U →
     Γ ⊢!val ƛ τ t ∈ ℿ τ U
   rec-I-! : ∀{x τ defs} →
     Γ & x ~ Ty (openType x τ) ⊢defns map (openDefn x) defs ∈ openType x τ →
