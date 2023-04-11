@@ -6,14 +6,18 @@ module DOTOmega.Typing.GeneralToTight {ℓ}
     (TermL : DecSetoid lzero ℓ)
   where
 
-open import Data.List
+open import Data.List hiding ([_])
 
 open import Data.Context
+open import Data.Var
 
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing TypeL TermL
 open import DOTOmega.Typing.Properties TypeL TermL
 open import DOTOmega.Typing.Tight TypeL TermL
+open import DOTOmega.Typing.Precise TypeL TermL
+open import DOTOmega.Typing.Invertible TypeL TermL
+open import DOTOmega.Typing.Invertible.Properties TypeL TermL
 
 postulate
   -- proof:
@@ -29,6 +33,25 @@ postulate
   -- function performing some computation (as opposed to a constructor),
   -- which Agda can have trouble with unifying.
   unwrap-inert-ctx : ∀ {Γ x fact} → (Γ & x ~ fact) inert-ctx → Γ inert-ctx
+
+record KSelPremise (Γ : Context) (x : Var) (M : TypeLabel) (k : Kind) : Set where
+  constructor KS
+  field
+    τ : Type
+    Γ⊢#τ∈k : Γ ⊢#ty τ ∈ k
+    U : Type
+    Γ⊢!x∈S[τ∶k] : Γ ⊢!var x ∈ U ⟫ [ typ M ∶ S[ τ ∈ k ] ]
+
+k-sel-premise : ∀ {Γ x M k} →
+  Γ inert-ctx →
+  Γ ⊢#tm ` x ∈ [ typ M ∶ k ] →
+  KSelPremise Γ x M k
+k-sel-premise {Γ} {x} {M} {k} Γinert Γ⊢#x∈[M∶k] =
+  k-sel-premise-## (⊢#→⊢##-var Γinert Γ⊢#x∈[M∶k])
+  where
+    k-sel-premise-## : Γ ⊢##var x ∈ [ typ M ∶ k ] → KSelPremise Γ x M k
+    k-sel-premise-## (ty-precise-## Γ⊢!x∈[M∶k]) = {! !}
+    k-sel-premise-## (ty-type-## Γ⊢##x∈[M∶J] Γ⊢#J≤K) = {! !}
 
 mutual
   ctx-ctx# : ∀ {Γ} → Γ inert-ctx → Γ ctx → Γ ctx-#
@@ -130,7 +153,13 @@ mutual
       (⊢→⊢#-sk Γinert Γ⊢J≤K)
   ⊢→⊢#-ty Γinert (k-field Γ⊢τ∈A∙∙B) = k-field-# (⊢→⊢#-ty Γinert Γ⊢τ∈A∙∙B)
   ⊢→⊢#-ty Γinert (k-typ Γ⊢K-kd) = k-typ-# (⊢→⊢#-kd Γinert Γ⊢K-kd)
-  ⊢→⊢#-ty Γinert (k-sel Γ⊢x∈[typA∶k]) = {! !}
+  ⊢→⊢#-ty Γinert (k-sel Γ⊢x∈[typA∶k]) =
+    let KS τ Γ⊢#τ∈k U Γ⊢!x∈[typA∶S[k]] =
+          k-sel-premise Γinert (⊢→⊢#-tm Γinert Γ⊢x∈[typA∶k])
+     in
+    k-sub-#
+      (k-sel-# Γ⊢#τ∈k Γ⊢!x∈[typA∶S[k]])
+      {!!}
 
   ⊢→⊢#-sk : ∀ {Γ J K} → Γ inert-ctx → Γ ⊢kd J ≤ K → Γ ⊢#kd J ≤ K
   ⊢→⊢#-sk Γinert (sk-intv Γ⊢S₂≤S₁ Γ⊢U₁≤U₂) =

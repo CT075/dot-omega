@@ -7,4 +7,8 @@ module DOTOmega.Typing.Tight.Properties {ℓ}
   where
 
 open import DOTOmega.Syntax TypeL TermL
+open import DOTOmega.Typing TypeL TermL
 open import DOTOmega.Typing.Tight TypeL TermL
+
+postulate
+  sing-sub : ∀{Γ τ k} → Γ ⊢kd S[ τ ∈ k ] ≤ k
