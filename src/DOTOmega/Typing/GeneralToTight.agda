@@ -15,6 +15,7 @@ open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing TypeL TermL
 open import DOTOmega.Typing.Properties TypeL TermL
 open import DOTOmega.Typing.Tight TypeL TermL
+open import DOTOmega.Typing.Tight.Properties TypeL TermL
 open import DOTOmega.Typing.Precise TypeL TermL
 open import DOTOmega.Typing.Invertible TypeL TermL
 open import DOTOmega.Typing.Invertible.Properties TypeL TermL
@@ -159,7 +160,7 @@ mutual
      in
     k-sub-#
       (k-sel-# Γ⊢#τ∈k Γ⊢!x∈[typA∶S[k]])
-      {!!}
+      (sing-sub Γ⊢#τ∈k)
 
   ⊢→⊢#-sk : ∀ {Γ J K} → Γ inert-ctx → Γ ⊢kd J ≤ K → Γ ⊢#kd J ≤ K
   ⊢→⊢#-sk Γinert (sk-intv Γ⊢S₂≤S₁ Γ⊢U₁≤U₂) =

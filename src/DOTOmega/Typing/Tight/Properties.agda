@@ -11,4 +11,4 @@ open import DOTOmega.Typing TypeL TermL
 open import DOTOmega.Typing.Tight TypeL TermL
 
 postulate
-  sing-sub : ∀{Γ τ k} → Γ ⊢kd S[ τ ∈ k ] ≤ k
+  sing-sub : ∀{Γ τ k} → Γ ⊢#ty τ ∈ k → Γ ⊢#kd S[ τ ∈ k ] ≤ k

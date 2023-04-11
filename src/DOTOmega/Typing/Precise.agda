@@ -21,6 +21,7 @@ data _⊢!var_∈_⟫_ (Γ : Ctx VarFact) : Var → Type → Type → Set where
   var-! : ∀{x τ} → Γ [ x ]⊢> Ty τ → Γ ⊢!var Free x ∈ τ ⟫ τ
   rec-e-! : ∀{x τ ρ} →
     Γ ⊢!var Free x ∈ τ ⟫ μ ρ →
+    -- This is wrong; plugType doesn't work this way.
     Γ ⊢!var Free x ∈ τ ⟫ plugType (Free x) ρ
   rec-and-!₁ : ∀{x τ S U} →
     Γ ⊢!var Free x ∈ τ ⟫ S ∧ U → Γ ⊢!var Free x ∈ τ ⟫ S
