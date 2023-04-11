@@ -71,9 +71,12 @@ data defnMatchesType : TypeLabel → Defn → Set where
 data defnMatchesTerm : TermLabel → Defn → Set where
   dmtm-lbl : ∀{ℓ e} → defnMatchesTerm ℓ (val ℓ =' e)
 
+_∈_ : Defn → List Defn → Set
+(typ A =' _) ∈ ds = Any (defnMatchesType A) ds
+(val ℓ =' _) ∈ ds = Any (defnMatchesTerm ℓ) ds
+
 _∉_ : Defn → List Defn → Set
-(typ A =' _) ∉ ds = ¬ (Any (defnMatchesType A) ds)
-(val ℓ =' _) ∉ ds = ¬ (Any (defnMatchesTerm ℓ) ds)
+d ∉ ds = ¬ (d ∈ ds)
 
 -- Locally-nameless operations
 
@@ -124,6 +127,9 @@ instance
 
   TermLift : Lift Term
   TermLift = record {lift = liftTerm}
+
+  ValLift : Lift Val
+  ValLift = record {lift = liftVal}
 
   TypeLift : Lift Type
   TypeLift = record {lift = liftType}
@@ -228,6 +234,11 @@ open Subst (record {lift = KindLift; var = id; subst = liftKind})
 open Subst (record {lift = TypeLift; var = id; subst = liftType})
   using ()
   renaming (bindT to plugType)
+  public
+
+open Subst (record {lift = DefnLift; var = id; subst = liftDefn})
+  using ()
+  renaming (bindT to plugDefn)
   public
 
 open Subst (record {lift = TermLift; var = id; subst = liftTerm})

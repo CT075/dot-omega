@@ -50,9 +50,13 @@ k-sel-premise : ∀ {Γ x M k} →
 k-sel-premise {Γ} {x} {M} {k} Γinert Γ⊢#x∈[M∶k] =
   k-sel-premise-## (⊢#→⊢##-var Γinert Γ⊢#x∈[M∶k])
   where
-    k-sel-premise-## : Γ ⊢##var x ∈ [ typ M ∶ k ] → KSelPremise Γ x M k
+    -- TODO: this is the most important part of the proof
+    postulate
+      k-sel-premise-## : Γ ⊢##var x ∈ [ typ M ∶ k ] → KSelPremise Γ x M k
+    {-
     k-sel-premise-## (ty-precise-## Γ⊢!x∈[M∶k]) = {! !}
     k-sel-premise-## (ty-type-## Γ⊢##x∈[M∶J] Γ⊢#J≤K) = {! !}
+    -}
 
 mutual
   ctx-ctx# : ∀ {Γ} → Γ inert-ctx → Γ ctx → Γ ctx-#
