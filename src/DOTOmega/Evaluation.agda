@@ -26,4 +26,17 @@ data _⇒_ : Stack × Term → Stack × Term → Set where
   ⇒-app : ∀{E f x τ e} →
     E [ f ]⊢>(ƛ τ e) →
     (E , Free f ⊡ x) ⇒ (E , plugTerm x e)
+  ⇒-let-val : ∀{E x v e} →
+    (E , let' V v in' e) ⇒ (E & x ~ v , openTerm x e)
+  ⇒-let-var : ∀{E y e} →
+    (E , let' ` (Free y) in' e) ⇒ (E , plugTerm (Free y) e)
+  ⇒-let-inner : ∀{E E' e₀ e₀' e} →
+    (E , e₀) ⇒ (E' , e₀') →
+    (E , let' e₀ in' e) ⇒ (E' , let' e₀' in' e)
+
+infix 5 _normal
+
+data _normal : Term → Set where
+  var-normal : ∀{x} → ` x normal
+  val-normal : ∀{v} → V v normal
 
