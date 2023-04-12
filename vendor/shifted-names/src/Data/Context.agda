@@ -24,8 +24,8 @@ record Entry T : Set where
 Ctx : ∀ T ⦃ _ : Lift T ⦄ → Set
 Ctx T = List (Entry T)
 
-empty : ∀ {T} ⦃ _ : Lift T ⦄ → Ctx T
-empty = []
+⊘ : ∀ {T} ⦃ _ : Lift T ⦄ → Ctx T
+⊘ = []
 
 mapEntry : ∀{T} ⦃ _ : Lift T ⦄ → (T → T) → Entry T → Entry T
 mapEntry f (E x τ) = E x (f τ)
@@ -64,3 +64,6 @@ replace {T} ⦃ TLift ⦄ (E y ρ ∷ Γ) name@(N x (suc i)) τ proof with x ≟
 ... | yes x≡y | bind-tl-xy _ x≢y = ⊥-elim (x≢y x≡y)
 ... | no x≢y | bind-tl-xx _ = ⊥-elim (x≢y refl)
 ... | no x≢y | bind-tl-xy Γ[x]⊢>τ' _ = E y ρ ∷ replace Γ name τ Γ[x]⊢>τ'
+
+domain : ∀ {T} ⦃ _ : Lift T ⦄ → Ctx T → List String
+domain = map Entry.name
