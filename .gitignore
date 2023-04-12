@@ -1,1 +1,9 @@
 _build
+*.log
+*.aux
+*.bbl
+*.blg
+*.agdai
+*.run.xml
+**/*-blx.bib
+*/_build

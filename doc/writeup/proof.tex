@@ -7,6 +7,10 @@
 \usepackage{mathpartir}
 \usepackage{bussproofs}
 \usepackage{stmaryrd}
+\usepackage{appendix}
+\usepackage{datetime}
+\usepackage{tabularx}
+\usepackage[iso, english]{isodate}
 
 \newcommand{\DOTw}{\ensuremath{DOT^\omega}}
 \newcommand{\Dsub}{\ensuremath{D_{<:}}}
@@ -23,39 +27,106 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{defn}{Definition}
 \newtheorem{lemma}{Lemma}
+\newtheorem{property}{Property}
 
 \bibliography{paper}
 
 \setlength{\parindent}{0cm}
 
-\title{\DOTw\ Candidate Rules}
+\title{Soundness for \DOTw{} (update \today)}
 \author{Cameron Wong}
 
 \begin{document}
 \maketitle
 
-\begin{figure}[h]
-  \begin{align*}
-          && X,Y,Z... && \textbf{Type Variable} \\
-          && x,y,z... && \textbf{Term Variable} \\
-          && M && \textbf{Type Label} \\
-          && \ell && \textbf{Term Label} \\
-    A,B,C &::=& X \mid \lambda(X:K).A \mid x.A \mid X\ Y
-      && \textbf{Type} \\
-    (\tau, \rho, S, U) &&\mid
-      \top \mid \bot \mid \TDepArr{x}{\tau}{\rho} \mid \tau \land \rho
-      \mid \mu(x . \tau)
-      && (\text{Proper types})\\
-    &&\mid \objtyp{val}{x}{\tau} \mid \objtyp{type}{X}{K} \\
-    J,K &::=& \TyKd \mid \interval{S}{U} \mid \KDepArr{X}{J}{K}
-      && \textbf{Kind} \\
-    e &::=& \dots \mid \text{let }\textbf{type }X = \tau\text{ in }e
-      && \textbf{Term} \\
-    \Gamma &::=& \varnothing \mid \Gamma, x:A \mid \Gamma, X:K \mid \Gamma, X=K
-      && \textbf{Context}
-  \end{align*}
-  \caption{Syntax}
+\setlength{\parskip}{\baselineskip}
+
+\section{Background}
+
+The key difficulty in introducing higher kinded types to DOT is, like with any
+DOT soundness proof, bad bounds. Particularly, in an open context, neither
+types nor terms satisfy subject reduction, making it unsound to perform
+evaluation in the presence of arbitrary subtyping lattices. This phenomenon
+is well-documented by \citet{amin2016}, \citet{rapoport2017},
+\citet{stucki2021} and others besides.
+
+The usual approach to dealing with this problem is to consider soundness only
+in closed terms, or in limited contexts where all bounds are known to be good.
+This notion was originally formalized by \citet{amin2016} as \emph{tight
+typing}. \citet{rapoport2017} then demonstrated how tight typing can be used to
+dramatically simplify the proof of soundness for DOT. This was done by defining
+\emph{inert typing contexts}, in which tight typing and general typing for DOT
+are equivalent. This allowed them to prove properties of the overall DOT type
+system by first dropping into tight typing, then using simple, intuitive
+reasoning over the tightly-typed system. In the words of \citet{rapoport2017},
+``To reconcile a subtyping lattice with a sound language, we only need to force
+the programmer to provide evidence that the custom lattice does not violate any
+familiar assumptions... This evidence takes the form of an argument value that
+must be passed to the lambda before the body that uses the custom type lattice
+can be allowed to execute.''.
+
+A major difficulty in extending this recipe to cover higher-kinded types is
+that, when types can contain computation themselves, some $\beta$-reduction
+\emph{has} to be performed in the typing rules (e.g., to compare types during
+typechecking), which is similarly unsound in the presence of bad bounds.
+Thankfully, this, too, can be resolved by making the following observation:
+
+\begin{property}
+  If $\varnothing \vdash e : \tau$, then $\varnothing \vdash \tau : *$.
+\end{property}
+
+That is, any closed expression $e$ must be assigned a proper type (as opposed
+to a type lambda) if it has any type at all. This means that, even if $\tau$ is
+a complex type expression containing many type functions, each of those
+functions must ultimately be applied to another type expression witnessing the
+validity of any bounds introduced. We will formally define this property in
+Section \ref{sec:tight-typing}.
+
+\section{$\DOTw$, the declarative system}
+
+In lieu of a comprehensive overview of $\DOTw{}$, we discuss only the details
+of the kinding system and how it interacts with vanilla DOT. The full
+declarative system can be found in Appendix \ref{appendix:dotw-rules}.
+
+\subsection{Syntax}
+
+\begin{figure}[ht]
+  \centering
+  \begin{tabularx}{\linewidth}{XXXX}
+    $x,y,z$... & \textbf{Term Variable} & $X,Y,Z$... & \textbf{Type Variable}\\
+    $\ell$ & \textbf{Value Label} & $M$ & \textbf{Type Label} \\
+  \end{tabularx}
+  \hfill \\
+  \hfill \\
+  \begin{tabularx}{\linewidth}{XlX}
+    $e,t ::=$ &
+    $x \mid v \mid x.\ell \mid x\ y \mid \text{let }x = e\text{ in }t$
+      & \textbf{Term} \\
+    $v ::=$ & $\lambda(x:\tau).e \mid \nu(x:\tau).d$ & \textbf{Value} \\
+    $d ::=$ & $\objval{val}{\ell}{e} \mid \objval{type}{M}{A} \mid
+      d_1 \land d_2$ & \textbf{Definition} \\
+    $A,B,C ::=$ &
+    $X \mid \lambda(X:K).A \mid x.M \mid A\ B$ & \textbf{Type} \\
+    $(\tau, \rho, S, U ::=)$ &
+      $\mid \top \mid \bot \mid \TDepArr{x}{\tau}{\rho}
+      \mid \tau \land \rho \mid \mu(x.\tau)$ & (Proper types) \\
+    & $\mid \objtyp{val}{\ell}{\tau} \mid \objtyp{type}{M}{K}$ & \\
+    $J,K ::=$ & $\interval{S}{U} \mid \KDepArr{X}{J}{K}$ & \textbf{Kind} \\
+  \end{tabularx}
+  \caption{Abstract syntax of $\DOTw{}$}
 \end{figure}
+
+\section{The Proof}
+
+\subsection{Overview}
+
+Our general proof recipe will largely follow that of \citet{rapoport2017}.
+
+\subsection{Tight Typing and Kinding}\label{sec:tight-typing}
+
+\appendix
+
+\section{\DOTw{} Full rules}\label{appendix:dotw-rules}
 
 \begin{figure}[ht]
   \begin{mathpar}
@@ -64,8 +135,6 @@
       {\isctx{\Gamma, X:K}} \and
     \inferrule*{\isctx{\Gamma}\and\Gamma \vdash A : \TyKd}
       {\isctx{\Gamma, x:A}} \and
-    \inferrule*{\isctx{\Gamma}\and\Gamma \vdash A : k}
-      {\isctx{\Gamma, x=A}}
   \end{mathpar}
   \caption{Context formation}
 \end{figure}
@@ -86,7 +155,7 @@
   \begin{mathpar}
     \inferrule*[right=SK-Intv]
       {\Gamma \vdash S_2 \le S_1:\TyKd \and \Gamma \vdash U_1 \le U_2:\TyKd}
-      {\Gamma \vdash \interval{S_1}{S_1} \le \interval{U_2}{U_2}} \and
+      {\Gamma \vdash \interval{S_1}{U_1} \le \interval{S_2}{U_2}} \and
     \inferrule*[right=SK-DArr]
       {\Gamma \vdash \iskd{\KDepArr{X}{J_1}{K_1}} \and
        \Gamma \vdash J_2 \le J_1 \and
@@ -99,22 +168,21 @@
 \begin{figure}[ht]
   \begin{mathpar}
     \inferrule*[right=K-Var]{\isctx{\Gamma, X:K}}{\Gamma, X:K \vdash X:K} \and
-    \inferrule*[right=K-Alias]{\isctx{\Gamma, X=A}}{\Gamma, X=A \vdash X:K}\and
     \inferrule*[right=K-Top]{\phantom{}}{\Gamma \vdash \top : \TyKd} \and
     \inferrule*[right=K-Bot]{\phantom{}}{\Gamma \vdash \bot : \TyKd} \and
     \inferrule*[right=K-Sing]{\Gamma \vdash A : \interval{S}{U}}
       {\Gamma \vdash A : \interval{A}{A}} \and
     \inferrule*[right=K-Arr]
-      {\Gamma \vdash A : \TyKd \and \Gamma \vdash B : \TyKd}
-      {\Gamma \vdash A \rightarrow B : \TyKd} \and
+      {\Gamma \vdash A : \TyKd \and \Gamma, x : A \vdash B : \TyKd}
+      {\Gamma \vdash \TDepArr{x}{A}{B} : \TyKd} \and
     \inferrule*[right=K-Abs]
       {\Gamma \vdash \iskd{J} \and \Gamma, X:J \vdash A : K \and
        \Gamma, X:J \vdash \iskd{K}}
       {\Gamma \vdash \lambda(X:J).A : \KDepArr{X}{J}{K}} \and
     \inferrule*[right=K-App]
-      {\Gamma \vdash X : \KDepArr{Z}{J}{K} \and \Gamma \vdash Y : J \and
-       \Gamma, Z:J \vdash \iskd{K} \and \Gamma \vdash \iskd{\subst{K}{Y}{Z}}}
-      {\Gamma \vdash X\ Y : \subst{K}{Y}{X}} \and
+      {\Gamma \vdash A : \KDepArr{Z}{J}{K} \and \Gamma \vdash B : J \and
+       \Gamma, X:J \vdash \iskd{K} \and \Gamma \vdash \iskd{\subst{K}{B}{X}}}
+      {\Gamma \vdash A B : \subst{K}{B}{X}} \and
     \inferrule*[right=K-Intersect]
       {\Gamma \vdash A : \interval{S_1}{U_1} \and
        \Gamma \vdash B : \interval{S_2}{U_2}}
@@ -149,14 +217,8 @@
       {\Gamma \vdash A \le \top : \TyKd} \and
     \inferrule*[right=ST-bot]{\Gamma \vdash A : \interval{S}{U}}
       {\Gamma \vdash \bot \le A : \TyKd} \and
-    \inferrule*[right=ST-alias$_1$]
-      {\isctx{\Gamma, X=\tau}\and \Gamma \vdash \tau : k}
-      {\Gamma, X=\tau \vdash X \le \tau : k} \and
-    \inferrule*[right=ST-alias$_2$]
-      {\isctx{\Gamma, X=\tau}\and \Gamma \vdash \tau : k}
-      {\Gamma, X=\tau \vdash \tau \le X : k} \and
     \inferrule*[right=ST-and-$\ell_1$]
-      {\Gamma \vdash A \land B : K}{\Gamma \vdash A \land B \le B : K} \and
+      {\Gamma \vdash A \land B : K}{\Gamma \vdash A \land B \le A : K} \and
     \inferrule*[right=ST-and-$\ell_2$]
       {\Gamma \vdash A \land B : K}{\Gamma \vdash A \land B \le B : K} \and
     \inferrule*[right=ST-and-r]
@@ -165,14 +227,14 @@
     \inferrule*[right=ST-field]{\Gamma \vdash A \le B : K}
       {\Gamma \vdash \objtyp{val}{\ell}{A} \le \objtyp{val}{\ell}{B} : \TyKd}
       \and
-    \inferrule*[right=ST-typ]{\Gamma \vdash J \le K}
-      {\Gamma \vdash \objtyp{type}{M}{J} \le \objtyp{type}{M}{K} : \TyKd}
-      \and
+    \inferrule*[right=ST-typ]
+      {\Gamma \vdash J \le K}
+      {\Gamma \vdash \objtyp{type}{M}{J} \le \objtyp{type}{M}{K} : \TyKd}\and
     \inferrule*[right=ST-$\beta_1$]
       {\Gamma \vdash X = \lambda (Z: J).A : \KDepArr{Z}{J}{K} \and
        \Gamma \vdash Y : J}
       {\Gamma \vdash X\ Y \le \subst{A}{Y}{Z} : \subst{K}{Y}{Z}}\and
-    \inferrule*[right=ST-$\beta_1$]
+    \inferrule*[right=ST-$\beta_2$]
       {\Gamma \vdash X = \lambda (Z: J).A : \KDepArr{Z}{J}{K} \and
        \Gamma \vdash Y : J}
       {\Gamma \vdash \subst{A}{Y}{Z} \le X\ Y : \subst{K}{Y}{Z}}\and
@@ -188,22 +250,14 @@
   \end{mathpar}
   \caption{Type equality}
 \end{figure}
-\clearpage
-
-Type assignment rules are the same as \citet{rapoport2017} and \citet{amin2016},
-with changes and additions below.
 
 \begin{figure}[ht]
   \begin{mathpar}
-    \inferrule*[right=Let-type]
-      {\Gamma \vdash \tau : k \and \Gamma, X=\tau \vdash e : \rho}
-      {\Gamma \vdash \text{let }\textbf{type }X = \tau\text{ in }e : \rho}
-      \and
     \inferrule*[right=Def-type]
-      {\Gamma \vdash \tau : k}
-      {\Gamma \vdash \objval{type}{M}{\tau} : \objtyp{type}{M}{k}}
+      {\Gamma \vdash \tau : K}
+      {\Gamma \vdash \objval{type}{M}{\tau} : \objtyp{type}{M}{K}}
   \end{mathpar}
-  \caption{Type assignment, adjusted rules}
+  \caption{Type assignment}
 \end{figure}
 
 \end{document}
