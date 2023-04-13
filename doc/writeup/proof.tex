@@ -23,6 +23,7 @@
 \newcommand{\subst}[3]{#1[#2/#3]}
 \newcommand{\objtyp}[3]{\{ \textbf{#1}\ #2 : #3 \}}
 \newcommand{\objval}[3]{\{ \textbf{#1}\ #2 = #3 \}}
+\newcommand{\termlet}[3]{\text{let }#1 = #2\text{ in }#3}
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{defn}{Definition}
@@ -82,13 +83,7 @@ functions must ultimately be applied to another type expression witnessing the
 validity of any bounds introduced. We will formally define this property in
 Section \ref{sec:tight-typing}.
 
-\section{$\DOTw$, the declarative system}
-
-In lieu of a comprehensive overview of $\DOTw{}$, we discuss only the details
-of the kinding system and how it interacts with vanilla DOT. The full
-declarative system can be found in Appendix \ref{appendix:dotw-rules}.
-
-\subsection{Syntax}
+\section{$\DOTw$ Syntax}
 
 \begin{figure}[ht]
   \centering
@@ -100,7 +95,7 @@ declarative system can be found in Appendix \ref{appendix:dotw-rules}.
   \hfill \\
   \begin{tabularx}{\linewidth}{XlX}
     $e,t ::=$ &
-    $x \mid v \mid x.\ell \mid x\ y \mid \text{let }x = e\text{ in }t$
+    $x \mid v \mid x.\ell \mid x\ y \mid \termlet{x}{e}{t}$
       & \textbf{Term} \\
     $v ::=$ & $\lambda(x:\tau).e \mid \nu(x:\tau).d$ & \textbf{Value} \\
     $d ::=$ & $\objval{val}{\ell}{e} \mid \objval{type}{M}{A} \mid
@@ -116,13 +111,42 @@ declarative system can be found in Appendix \ref{appendix:dotw-rules}.
   \caption{Abstract syntax of $\DOTw{}$}
 \end{figure}
 
+We also use $*$ as shorthand for $\interval{\bot}{\top}$.
+
+Following \citet{stucki2021}, we represent type bounds at the kind level, with
+$\Gamma \vdash \tau : \interval{S}{U}$ meaning $S \le \tau$ and $\tau \le U$.
+Type members are then assigned a kind, rather than marking bounds
+syntactically.
+
+The full declarative typing system can be found in Appendix
+\ref{appendix:dotw-rules}.
+
 \section{The Proof}
 
 \subsection{Overview}
 
 Our general proof recipe will largely follow that of \citet{rapoport2017}.
+Unlike the first-order system, merely knowing that $\Gamma \vdash v: A$ does
+not allow us to deduce the canonical form of the value $v$, as $A$ may be a
+complex type expression containing $\beta$-redexes. Nor can we simply normalize
+the type expression $A$, as we may be in a crazy context in which subtyping
+cannot be trusted and subject reduction does not hold. If we \emph{do} know
+that the context is inert, however, then reduction is sound and all is well.
 
-\subsection{Tight Typing and Kinding}\label{sec:tight-typing}
+The overall proof, then, will proceed as follows:
+
+\begin{enumerate}
+  \item Extend DOT's tight typing rules with corresponding tight \emph{kinding}
+    and reduction rules, alongside extending the notion of inert contexts to
+    restrict type variables as well.
+  \item Show that general typing still implies tight typing.
+  \item Prove that, under tight subtyping, reduction of type expressions is
+    sound and normalizing.
+  \item Finally, use the above to re-prove the relevant canonical forms lemmas
+    necessary to show progress and preservation of $\DOTw$.
+\end{enumerate}
+
+\subsection{Tight Kinding and Reduction}\label{sec:tight-typing}
 
 \appendix
 
@@ -238,6 +262,12 @@ Our general proof recipe will largely follow that of \citet{rapoport2017}.
       {\Gamma \vdash X = \lambda (Z: J).A : \KDepArr{Z}{J}{K} \and
        \Gamma \vdash Y : J}
       {\Gamma \vdash \subst{A}{Y}{Z} \le X\ Y : \subst{K}{Y}{Z}}\and
+    \inferrule*[right=ST-$\eta_1$]
+      {\Gamma \vdash A : \KDepArr{Z}{J}{K} \and Z \not\in fv(A)}
+      {\Gamma \vdash \lambda (Z:J).A\ Z \le A: \KDepArr{Z}{J}{K}} \and
+    \inferrule*[right=ST-$\eta_2$]
+      {\Gamma \vdash A : \KDepArr{Z}{J}{K} \and Z \not\in fv(A)}
+      {\Gamma \vdash \lambda (Z:J).A \le A\ Z: \KDepArr{Z}{J}{K}}
   \end{mathpar}
   \caption{Subtyping}
 \end{figure}
@@ -253,9 +283,42 @@ Our general proof recipe will largely follow that of \citet{rapoport2017}.
 
 \begin{figure}[ht]
   \begin{mathpar}
-    \inferrule*[right=Def-type]
+    \inferrule*[right=Ty-Var]
+      {\isctx{\Gamma, x: \tau}}
+      {\Gamma, x:\tau \vdash x: \tau} \and
+    \inferrule*[right=Ty-Let]
+      {\Gamma \vdash e_1: \tau \and \Gamma, x:\tau \in e_2 \and x \not\in fv(\rho)}
+      {\Gamma \vdash \termlet{x}{e_1}{e_2} : \rho} \and
+    \inferrule*[right=Ty-Fun-I]
+      {\Gamma, x: \tau \vdash e: \rho}
+      {\Gamma \vdash \lambda(x:\tau).e : \TDepArr{x}{\tau}{\rho}} \and
+    \inferrule*[right=Ty-Fun-E]
+      {\Gamma \vdash x : \TDepArr{z}{\tau}{\rho} \and \Gamma \vdash y : \tau}
+      {\Gamma \vdash x\ y : \subst{z}{y}{\rho}} \and
+    \inferrule*[right=Ty-$\mu$-I]
+      {\Gamma \vdash x: \tau}
+      {\Gamma \vdash x: \mu(x: \tau)} \and
+    \inferrule*[right=Ty-$\mu$-E]
+      {\Gamma \vdash x: \mu(z: \tau)}
+      {\Gamma \vdash x: \subst{z}{x}{\tau}} \and
+    \inferrule*[right=Ty-Rec-I]
+      {\Gamma, x: \tau \vdash d: \tau}
+      {\Gamma \vdash \nu(x: \tau)d : \mu(x:\tau)} \and
+    \inferrule*[right=Ty-Rec-E]
+      {\Gamma, x: \objtyp{val}{\ell}{\tau}}
+      {\Gamma \vdash x.\ell : \tau} \and
+    \inferrule*[right=Ty-And-I]
+      {\Gamma \vdash x: \tau_1 \and \Gamma \vdash x: \tau_2}
+      {\Gamma \vdash x: \tau_1 \land \tau_2} \and
+    \inferrule*[right=Ty-Sub]
+      {\Gamma \vdash e: \tau_1 \and \Gamma \vdash \tau_1 \le \tau_2 : *}
+      {\Gamma \vdash e: \tau_2} \and
+    \inferrule*[right=Ty-Def-Trm]
+      {\Gamma \vdash e: \rho}
+      {\Gamma \vdash \objval{val}{\ell}{e} : \objtyp{val}{\ell}{\rho}} \and
+    \inferrule*[right=Ty-Def-Typ]
       {\Gamma \vdash \tau : K}
-      {\Gamma \vdash \objval{type}{M}{\tau} : \objtyp{type}{M}{K}}
+      {\Gamma \vdash \objval{type}{M}{\tau} : \objtyp{type}{M}{\interval{\tau}{\tau}}}
   \end{mathpar}
   \caption{Type assignment}
 \end{figure}

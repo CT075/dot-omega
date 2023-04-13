@@ -172,7 +172,9 @@ mutual
 
   -- Definition typing
   data _⊢defn_∈_ (Γ : Ctx VarFact) : Defn → Decl → Set where
-    ty-defn-type : ∀{A k τ} → Γ ⊢ty τ ∈ k → Γ ⊢defn (typ A =' τ) ∈ typ A ∶ k
+    ty-defn-type : ∀{A k τ} →
+      Γ ⊢ty τ ∈ k →
+      Γ ⊢defn (typ A =' τ) ∈ typ A ∶ τ ∙∙ τ
     ty-defn-term : ∀{ℓ e τ} →
       Γ ⊢tm e ∈ τ →
       Γ ⊢defn (val ℓ =' e) ∈ val ℓ ∶ τ
