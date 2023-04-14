@@ -30,9 +30,9 @@ postulate
 
   narrowing-sk-kd : ∀ {Γ τ x J₁ J₂ K} →
     Γ ⊢ty τ ∈ K →
-    (pf : Γ [ x ]⊢> Kd J₁) →
+    (pf : Γ [ x ]⊢> Kd J₂) →
     Γ ⊢kd J₁ ≤ J₂ →
-    replace Γ x (Kd J₂) pf ⊢ty τ ∈ K
+    replace Γ x (Kd J₁) pf ⊢ty τ ∈ K
 
   narrowing-sk-tm : ∀ {Γ e x τ J K} →
     Γ ⊢tm e ∈ τ →
