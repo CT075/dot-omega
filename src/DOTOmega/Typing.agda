@@ -1,4 +1,4 @@
-open import Level renaming (zero to lzero; suc to lsuc) hiding (Lift)
+open import Level renaming (zero to lzero; suc to lsuc) hiding (Lift; _⊔_)
 open import Relation.Binary using (DecSetoid)
 
 module DOTOmega.Typing {ℓ}
@@ -6,6 +6,7 @@ module DOTOmega.Typing {ℓ}
     (TermL : DecSetoid lzero ℓ)
   where
 
+open import Data.Nat using (ℕ; _⊔_; zero; suc)
 open import Data.List using (List; []; _∷_; map)
 
 open import Data.Var
@@ -195,3 +196,84 @@ intv≤✶ : ∀{Γ A B τ₁ τ₂ τ₃ τ₄} →
   Γ ⊢ty A ∈ τ₁ ∙∙ τ₂ → Γ ⊢ty B ∈ τ₃ ∙∙ τ₄ → Γ ⊢kd A ∙∙ B ≤ ✶
 intv≤✶ Γ⊢A∈∙∙ Γ⊢B∈∙∙ = sk-intv (st-bot Γ⊢A∈∙∙) (st-top Γ⊢B∈∙∙)
 
+-- Induction measures
+
+-- TODO: this is all boilerplate, maybe replace with sized types
+
+mutual
+  []ctx-h : ∀{Γ} → Γ ctx → ℕ
+  []ctx-h c-empty = 1
+  []ctx-h (c-cons-kd Γctx Γ⊢Kkd) = suc ([]ctx-h Γctx ⊔ ⊢[]kd-h Γ⊢Kkd)
+  []ctx-h (c-cons-ty Γctx Γ⊢τ∈k) = suc ([]ctx-h Γctx ⊔ ⊢ty[]∈[]-h Γ⊢τ∈k)
+
+  ⊢[]kd-h : ∀{Γ k} → Γ ⊢ k kd → ℕ
+  ⊢[]kd-h (wf-intv Γ⊢S∈✶ Γ⊢U∈✶) = suc (⊢ty[]∈[]-h Γ⊢S∈✶ ⊔ ⊢ty[]∈[]-h Γ⊢U∈✶)
+  ⊢[]kd-h (wf-darr Γ⊢Jkd Γx⊢Kkd) = suc (⊢[]kd-h Γ⊢Jkd ⊔ ⊢[]kd-h Γx⊢Kkd)
+
+  ⊢kd[]≤[]-h : ∀{Γ J K} → Γ ⊢kd J ≤ K → ℕ
+  ⊢kd[]≤[]-h (sk-intv Γ⊢S₂≤S₁ Γ⊢U₁≤U₂) =
+    suc (⊢ty[]≤[]∈[]-h Γ⊢S₂≤S₁ ⊔ ⊢ty[]≤[]∈[]-h Γ⊢U₁≤U₂)
+  ⊢kd[]≤[]-h (sk-darr Γ⊢ℿJ₁K₁kd Γ⊢J₂≤J₁ Γx⊢K₁≤K₂) =
+    suc (⊢[]kd-h Γ⊢ℿJ₁K₁kd ⊔ ⊢kd[]≤[]-h Γ⊢J₂≤J₁ ⊔ ⊢kd[]≤[]-h Γx⊢K₁≤K₂)
+
+  ⊢ty[]∈[]-h : ∀{Γ τ K} → Γ ⊢ty τ ∈ K → ℕ
+  ⊢ty[]∈[]-h (k-var Γctx Γ[x]⊢τ) = suc ([]ctx-h Γctx)
+  ⊢ty[]∈[]-h k-top = 1
+  ⊢ty[]∈[]-h k-bot = 1
+  ⊢ty[]∈[]-h (k-sing Γ⊢A∈S∙∙U) = suc (⊢ty[]∈[]-h Γ⊢A∈S∙∙U)
+  ⊢ty[]∈[]-h (k-arr Γ⊢A∈✶ Γ⊢B∈✶) = suc (⊢ty[]∈[]-h Γ⊢A∈✶ ⊔ ⊢ty[]∈[]-h Γ⊢B∈✶)
+  ⊢ty[]∈[]-h (k-abs Γ⊢Jkd Γx⊢A∈K) = suc (⊢[]kd-h Γ⊢Jkd ⊔ ⊢ty[]∈[]-h Γx⊢A∈K)
+  ⊢ty[]∈[]-h (k-app Γ⊢f∈ℿJK Γ⊢τ∈J) = suc (⊢ty[]∈[]-h Γ⊢f∈ℿJK ⊔ ⊢ty[]∈[]-h Γ⊢τ∈J)
+  ⊢ty[]∈[]-h (k-intersect Γ⊢A∈K₁ Γ⊢A∈K₂) =
+    suc (⊢ty[]∈[]-h Γ⊢A∈K₁ ⊔ ⊢ty[]∈[]-h Γ⊢A∈K₂)
+  ⊢ty[]∈[]-h (k-sub Γ⊢A∈J Γ⊢J≤K) = suc (⊢ty[]∈[]-h Γ⊢A∈J ⊔ ⊢kd[]≤[]-h Γ⊢J≤K)
+  ⊢ty[]∈[]-h (k-field Γ⊢τ∈S∙∙U) = suc (⊢ty[]∈[]-h Γ⊢τ∈S∙∙U)
+  ⊢ty[]∈[]-h (k-typ Γ⊢Kkd) = suc (⊢[]kd-h Γ⊢Kkd)
+  ⊢ty[]∈[]-h (k-sel Γ⊢x∈[M∶k]) = suc (⊢tm[]∈[]-h Γ⊢x∈[M∶k])
+
+  ⊢ty[]≤[]∈[]-h : ∀{Γ A B K} → Γ ⊢ty A ≤ B ∈ K → ℕ
+  ⊢ty[]≤[]∈[]-h (st-refl Γ⊢A∈K) = suc (⊢ty[]∈[]-h Γ⊢A∈K)
+  ⊢ty[]≤[]∈[]-h (st-trans Γ⊢A≤B Γ⊢B≤C) =
+    suc (⊢ty[]≤[]∈[]-h Γ⊢A≤B ⊔ ⊢ty[]≤[]∈[]-h Γ⊢B≤C)
+  ⊢ty[]≤[]∈[]-h (st-top Γ⊢A∈✶) = suc (⊢ty[]∈[]-h Γ⊢A∈✶)
+  ⊢ty[]≤[]∈[]-h (st-bot Γ⊢A∈✶) = suc (⊢ty[]∈[]-h Γ⊢A∈✶)
+  ⊢ty[]≤[]∈[]-h (st-and-l₁ Γ⊢τ₁∧τ₂∈K) = suc (⊢ty[]∈[]-h Γ⊢τ₁∧τ₂∈K)
+  ⊢ty[]≤[]∈[]-h (st-and-l₂ Γ⊢τ₁∧τ₂∈K) = suc (⊢ty[]∈[]-h Γ⊢τ₁∧τ₂∈K)
+  ⊢ty[]≤[]∈[]-h (st-and₂ Γ⊢ρ≤τ₁ Γ⊢ρ≤τ₂) =
+    suc (⊢ty[]≤[]∈[]-h Γ⊢ρ≤τ₁ ⊔ ⊢ty[]≤[]∈[]-h Γ⊢ρ≤τ₂)
+  ⊢ty[]≤[]∈[]-h (st-field Γ⊢τ₁≤τ₂) = suc (⊢ty[]≤[]∈[]-h Γ⊢τ₁≤τ₂)
+  ⊢ty[]≤[]∈[]-h (st-typ Γ⊢J≤K) = suc (⊢kd[]≤[]-h Γ⊢J≤K)
+  ⊢ty[]≤[]∈[]-h (st-β₁ Γx⊢A∈K Γ⊢B∈J) = suc (⊢ty[]∈[]-h Γx⊢A∈K ⊔ ⊢ty[]∈[]-h Γ⊢B∈J)
+  ⊢ty[]≤[]∈[]-h (st-β₂ Γx⊢A∈K Γ⊢B∈J) = suc (⊢ty[]∈[]-h Γx⊢A∈K ⊔ ⊢ty[]∈[]-h Γ⊢B∈J)
+  ⊢ty[]≤[]∈[]-h (st-app Γ⊢A₁≤A₂ Γ⊢B₁==B₂) =
+    suc (⊢ty[]≤[]∈[]-h Γ⊢A₁≤A₂ ⊔ ⊢ty[]==[]-h Γ⊢B₁==B₂)
+  ⊢ty[]≤[]∈[]-h (st-bnd₁ Γ⊢τ∈S∙∙U) = suc (⊢ty[]∈[]-h Γ⊢τ∈S∙∙U)
+  ⊢ty[]≤[]∈[]-h (st-bnd₂ Γ⊢τ∈S∙∙U) = suc (⊢ty[]∈[]-h Γ⊢τ∈S∙∙U)
+
+  ⊢ty[]==[]-h : ∀{Γ A B K} → Γ ⊢ty A == B ∈ K → ℕ
+  ⊢ty[]==[]-h (st-antisym Γ⊢A≤B Γ⊢B≤A) =
+    suc (⊢ty[]≤[]∈[]-h Γ⊢A≤B ⊔ ⊢ty[]≤[]∈[]-h Γ⊢B≤A)
+
+  ⊢tm[]∈[]-h : ∀{Γ t τ} → Γ ⊢tm t ∈ τ → ℕ
+  ⊢tm[]∈[]-h (ty-var Γ[x]⊢>τ) = 1
+  ⊢tm[]∈[]-h (ty-ℿ-intro Γx⊢e∈ρ) = suc (⊢tm[]∈[]-h Γx⊢e∈ρ)
+  ⊢tm[]∈[]-h (ty-ℿ-elim Γ⊢f∈ℿτρ Γ⊢x∈τ) =
+    suc (⊢tm[]∈[]-h Γ⊢f∈ℿτρ ⊔ ⊢tm[]∈[]-h Γ⊢x∈τ)
+  ⊢tm[]∈[]-h (ty-new-intro Γ⊢ds∈τ) = ⊢defns[]∈[]-h Γ⊢ds∈τ
+  ⊢tm[]∈[]-h (ty-new-elim Γ⊢x∈[ℓ∶τ]) = suc (⊢tm[]∈[]-h Γ⊢x∈[ℓ∶τ])
+  ⊢tm[]∈[]-h (ty-let Γ⊢e₁∈τ Γx⊢e₂∈ρ) =
+    suc (⊢tm[]∈[]-h Γ⊢e₁∈τ ⊔ ⊢tm[]∈[]-h Γx⊢e₂∈ρ)
+  ⊢tm[]∈[]-h (ty-rec-intro Γ⊢x∈xτ) = suc (⊢tm[]∈[]-h Γ⊢x∈xτ)
+  ⊢tm[]∈[]-h (ty-rec-elim Γ⊢x∈μτ) = suc (⊢tm[]∈[]-h Γ⊢x∈μτ)
+  ⊢tm[]∈[]-h (ty-and-intro Γ⊢x∈τ₁ Γ⊢x∈τ₂) =
+    suc (⊢tm[]∈[]-h Γ⊢x∈τ₁ ⊔ ⊢tm[]∈[]-h Γ⊢x∈τ₂)
+  ⊢tm[]∈[]-h (ty-sub Γ⊢x∈S Γ⊢S≤U) = suc (⊢tm[]∈[]-h Γ⊢x∈S ⊔ ⊢ty[]≤[]∈[]-h Γ⊢S≤U)
+
+  ⊢defn[]∈[]-h : ∀{Γ d τ} → Γ ⊢defn d ∈ τ → ℕ
+  ⊢defn[]∈[]-h (ty-defn-type Γ⊢τ∈k) = suc (⊢ty[]∈[]-h Γ⊢τ∈k)
+  ⊢defn[]∈[]-h (ty-defn-term Γ⊢e∈τ) = suc (⊢tm[]∈[]-h Γ⊢e∈τ)
+
+  ⊢defns[]∈[]-h : ∀{Γ ds τ} → Γ ⊢defns ds ∈ τ → ℕ
+  ⊢defns[]∈[]-h (ty-defns-one Γ⊢d∈τ) = suc (⊢defn[]∈[]-h Γ⊢d∈τ)
+  ⊢defns[]∈[]-h (ty-defns-cons Γ⊢ds∈τ Γ⊢d∈D d∉ds) =
+    suc (⊢defns[]∈[]-h Γ⊢ds∈τ ⊔ ⊢defn[]∈[]-h Γ⊢d∈D)
