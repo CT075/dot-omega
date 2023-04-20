@@ -7,7 +7,7 @@ module DOTOmega.Typing.GeneralToTight {ℓ}
   where
 
 open import Data.Nat using (ℕ; suc; _⊔_; s≤s) renaming (_<_ to _<ℕ_)
-open import Data.Nat.Properties using (≤-reflexive; m≤m⊔n; m≤n⊔m)
+open import Data.Nat.Properties using (≤-reflexive; ≤-trans; m≤m⊔n; m≤n⊔m)
 open import Data.Nat.Induction.Extensions
 open import Data.Product
 open import Data.List hiding ([_])
@@ -27,15 +27,6 @@ open import DOTOmega.Typing.Invertible TypeL TermL
 open import DOTOmega.Typing.Invertible.Properties TypeL TermL
 
 postulate
-  -- proof:
-  -- narrow x to get Γ & x ~ S(B:J) ⊢ A ∈ K
-  -- S[ B ∈ J ] is inert, so use general-tight to get Γ & x ~ S(B:J) ⊢ A ∈ K
-  st-β-premise : ∀ {Γ A B J K x} →
-    Γ inert-ctx →
-    Γ ⊢#ty B ∈ J →
-    Γ & x ~ Kd J ⊢ty openType x A ∈ K →
-    Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ K
-
   -- This is clearly true, but at the moment, [Γ & x ~ T] is defined as a
   -- function performing some computation (as opposed to a constructor),
   -- which Agda can have trouble with unifying.
@@ -104,7 +95,7 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
   Acc _<_ packed →
   Out
 
--- Context transformation
+-- Context validity
 ⊢→⊢#-step (_ , (IsCtx c-empty)) Γinert (acc rec) = c-empty-#
 ⊢→⊢#-step (_ , (IsCtx (c-cons-ty Γctx Γ⊢τ∈K))) Γx-inert (acc rec) =
   let Γinert = unwrap-inert-ctx Γx-inert
@@ -206,178 +197,156 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
   st-bnd₁-# (⊢→⊢#-step (_ , Kinding Γ⊢A∈S∙∙U) Γinert (rec _ (s≤s (≤-reflexive refl))))
 ⊢→⊢#-step (_ , Subtyping (st-bnd₂ Γ⊢A∈S∙∙U)) Γinert (acc rec) =
   st-bnd₂-# (⊢→⊢#-step (_ , Kinding Γ⊢A∈S∙∙U) Γinert (rec _ (s≤s (≤-reflexive refl))))
-⊢→⊢#-step (_ , Subtyping (st-β₁ Γ⊢A∈K Γ⊢B∈J)) = {!!}
-⊢→⊢#-step (_ , Subtyping (st-β₂ Γ⊢A∈K Γ⊢B∈J)) = {!!}
+
+-- TODO/paper: lemma numbering
+-- This step corresponds to Lemma ## in the paper. It is inlined, rather than
+-- separated into its own lemma, to ease the already-nasty well-founded
+-- recursion necessary here.
+⊢→⊢#-step ((Γ , _) , Subtyping (st-β₁ {J} {K} {x} {A} {B} Γx∶J⊢A∈K Γ⊢B∈J)) Γinert (acc rec) =
+    st-β₁-#
+      (⊢→⊢#-step (_ , Kinding Γ⊢B∈J) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
+      Γx∶S[B∈J]⊢#A∈K
+  where
+    narrowed : Σ[ p ∈ Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ K ]
+      (⊢ty[]∈[]-h Γx∶J⊢A∈K ≡ ⊢ty[]∈[]-h p)
+    narrowed = narrowing-sk-kd Γx∶J⊢A∈K (sing-sub Γ⊢B∈J)
+
+    Γx∶S[B∈J]⊢A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ K
+    Γx∶S[B∈J]⊢A∈K = proj₁ narrowed
+
+    -- the height of the narrowed subtree is the same as the original, so...
+    height-eq : ⊢ty[]∈[]-h Γx∶J⊢A∈K ≡ ⊢ty[]∈[]-h Γx∶S[B∈J]⊢A∈K
+    height-eq = proj₂ narrowed
+
+    -- ...we can cite the inductive hypothesis on it.
+    Γx∶S[B∈J]⊢#A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢#ty openType x A ∈ K
+    Γx∶S[B∈J]⊢#A∈K rewrite height-eq = ⊢→⊢#-step
+      (_ , Kinding Γx∶S[B∈J]⊢A∈K)
+      (cons-inert-kd Γinert (sing-inert B J))
+      (rec _ (s≤s (m≤m⊔n _ _)))
+
+⊢→⊢#-step ((Γ , _) , Subtyping (st-β₂ {J} {K} {x} {A} {B} Γx∶J⊢A∈K Γ⊢B∈J)) Γinert (acc rec) =
+    st-β₂-#
+      (⊢→⊢#-step (_ , Kinding Γ⊢B∈J) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
+      Γx∶S[B∈J]⊢#A∈K
+  where
+    narrowed : Σ[ p ∈ Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ K ]
+      (⊢ty[]∈[]-h Γx∶J⊢A∈K ≡ ⊢ty[]∈[]-h p)
+    narrowed = narrowing-sk-kd Γx∶J⊢A∈K (sing-sub Γ⊢B∈J)
+
+    Γx∶S[B∈J]⊢A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ K
+    Γx∶S[B∈J]⊢A∈K = proj₁ narrowed
+
+    height-eq : ⊢ty[]∈[]-h Γx∶J⊢A∈K ≡ ⊢ty[]∈[]-h Γx∶S[B∈J]⊢A∈K
+    height-eq = proj₂ narrowed
+
+    Γx∶S[B∈J]⊢#A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢#ty openType x A ∈ K
+    Γx∶S[B∈J]⊢#A∈K rewrite height-eq = ⊢→⊢#-step
+      (_ , Kinding Γx∶S[B∈J]⊢A∈K)
+      (cons-inert-kd Γinert (sing-inert B J))
+      (rec _ (s≤s (m≤m⊔n _ _)))
+
+-- Kind assignment
+⊢→⊢#-step (_ , Kinding (k-var Γctx Γ[x]⊢>τ)) Γinert (acc rec) =
+  k-var-#
+    (⊢→⊢#-step (_ , IsCtx Γctx) Γinert (rec _ (s≤s (≤-reflexive refl))))
+    Γ[x]⊢>τ
+⊢→⊢#-step (_ , Kinding k-top) Γinert (acc rec) = k-top-#
+⊢→⊢#-step (_ , Kinding k-bot) Γinert (acc rec) = k-bot-#
+⊢→⊢#-step (_ , Kinding (k-sing Γ⊢A∈S∙∙U)) Γinert (acc rec) =
+  k-sing-#
+    (⊢→⊢#-step (_ , Kinding Γ⊢A∈S∙∙U) Γinert (rec _ (s≤s (≤-reflexive refl))))
+⊢→⊢#-step (_ , Kinding (k-arr Γ⊢A∈✶ Γ⊢B∈✶)) Γinert (acc rec) =
+  k-arr-#
+    (⊢→⊢#-step (_ , Kinding Γ⊢A∈✶) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
+    Γ⊢B∈✶
+⊢→⊢#-step (_ , Kinding (k-abs Γ⊢J-kd Γ⊢A∈K)) Γinert (acc rec) =
+  k-abs-#
+    (⊢→⊢#-step (_ , IsKd Γ⊢J-kd) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
+    Γ⊢A∈K
+⊢→⊢#-step (_ , Kinding (k-app Γ⊢f∈ℿJK Γ⊢τ∈J)) Γinert (acc rec) =
+  k-app-#
+    (⊢→⊢#-step (_ , Kinding Γ⊢f∈ℿJK) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
+    (⊢→⊢#-step (_ , Kinding Γ⊢τ∈J) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
+⊢→⊢#-step (_ , Kinding (k-intersect Γ⊢τ₁∈S₁∙∙U₁ Γ⊢τ₂∈S₂∙∙U₂)) Γinert (acc rec) =
+  k-intersect-#
+    (⊢→⊢#-step (_ , Kinding Γ⊢τ₁∈S₁∙∙U₁) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
+    (⊢→⊢#-step (_ , Kinding Γ⊢τ₂∈S₂∙∙U₂) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
+⊢→⊢#-step (_ , Kinding (k-sub Γ⊢τ∈J Γ⊢J≤K)) Γinert (acc rec) =
+  k-sub-#
+    (⊢→⊢#-step (_ , Kinding Γ⊢τ∈J) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
+    (⊢→⊢#-step (_ , Subkinding Γ⊢J≤K) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
+⊢→⊢#-step (_ , Kinding (k-field Γ⊢τ∈A∙∙B)) Γinert (acc rec) =
+  k-field-#
+    (⊢→⊢#-step (_ , Kinding Γ⊢τ∈A∙∙B) Γinert (rec _ (s≤s (≤-reflexive refl))))
+⊢→⊢#-step (_ , Kinding (k-typ Γ⊢K-kd)) Γinert (acc rec) =
+  k-typ-#
+    (⊢→⊢#-step (_ , IsKd Γ⊢K-kd) Γinert (rec _ (s≤s (≤-reflexive refl))))
+⊢→⊢#-step (_ , Kinding (k-sel Γ⊢x∈[typA∶k])) Γinert (acc rec) =
+  let KS τ Γ⊢#τ∈k U Γ⊢!x∈[typA∶S[k]] =
+        k-sel-premise
+          Γinert
+          (⊢→⊢#-step
+            (_ , Typing Γ⊢x∈[typA∶k])
+            Γinert
+            (rec _ (s≤s (≤-reflexive refl))))
+   in
+  k-sub-#
+    (k-sel-# Γ⊢#τ∈k Γ⊢!x∈[typA∶S[k]])
+    (sing-sub-# Γ⊢#τ∈k)
+
+-- Kind validity
+⊢→⊢#-step (_ , IsKd (wf-intv Γ⊢S∈✶ Γ⊢U∈✶)) Γinert (acc rec) =
+  wf-intv-#
+    (⊢→⊢#-step (_ , Kinding Γ⊢S∈✶) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
+    (⊢→⊢#-step (_ , Kinding Γ⊢U∈✶) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
+⊢→⊢#-step (_ , IsKd (wf-darr Γ⊢J-kd Γ⊢K-kd)) Γinert (acc rec) =
+  wf-darr-#
+    (⊢→⊢#-step (_ , IsKd Γ⊢J-kd) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
+    Γ⊢K-kd
+
+-- Subkinding
+⊢→⊢#-step (_ , Subkinding (sk-intv Γ⊢S₂≤S₁ Γ⊢U₁≤U₂)) Γinert (acc rec) =
+  sk-intv-#
+    (⊢→⊢#-step (_ , Subtyping Γ⊢S₂≤S₁) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
+    (⊢→⊢#-step (_ , Subtyping Γ⊢U₁≤U₂) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
+⊢→⊢#-step (_ , Subkinding t@(sk-darr Γ⊢ℿJ₁K₁-kd Γ⊢J₂≤J₁ Γ⊢K₁≤K₂)) Γinert (acc rec) =
+  sk-darr-#
+    (⊢→⊢#-step (_ , IsKd Γ⊢ℿJ₁K₁-kd) Γinert (rec _ (s≤s (≤-trans (m≤m⊔n _ _) (m≤m⊔n _ _)))))
+    (⊢→⊢#-step (_ , Subkinding Γ⊢J₂≤J₁) Γinert (rec _ p))
+    Γ⊢K₁≤K₂
+  where
+    open Data.Nat.Properties.≤-Reasoning
+
+    p : ⊢kd[]≤[]-h Γ⊢J₂≤J₁ <ℕ ⊢kd[]≤[]-h t
+    p = begin-strict
+        ⊢kd[]≤[]-h Γ⊢J₂≤J₁
+      ≤⟨ m≤n⊔m _ _ ⟩
+        ⊢[]kd-h Γ⊢ℿJ₁K₁-kd ⊔ ⊢kd[]≤[]-h Γ⊢J₂≤J₁
+      ≤⟨ m≤m⊔n _ _ ⟩
+        ⊢[]kd-h Γ⊢ℿJ₁K₁-kd ⊔ ⊢kd[]≤[]-h Γ⊢J₂≤J₁ ⊔ ⊢kd[]≤[]-h Γ⊢K₁≤K₂
+      <⟨ s≤s (≤-reflexive refl) ⟩
+        suc (⊢[]kd-h Γ⊢ℿJ₁K₁-kd ⊔ ⊢kd[]≤[]-h Γ⊢J₂≤J₁ ⊔ ⊢kd[]≤[]-h Γ⊢K₁≤K₂)
+      ≡⟨⟩
+        ⊢kd[]≤[]-h t
+      ∎
+
 
 ⊢→⊢# : ∀ {Γ Out} → Γ inert-ctx → Judgment Γ Out → Out
 ⊢→⊢# {Γ} {Out} Γinert j = ⊢→⊢#-step ((Γ , Out) , j) Γinert (<-wf ((Γ , Out) , j))
 
-mutual
-  ctx-ctx# : ∀ {Γ} → Γ inert-ctx → Γ ctx → Γ ctx-#
-  ctx-ctx# Γx-inert c-empty = c-empty-#
-  ctx-ctx# Γx-inert (c-cons-ty Γctx Γ⊢τ∈K) =
-    let Γinert = unwrap-inert-ctx Γx-inert
-     in
-    c-cons-ty-#
-      (ctx-ctx# Γinert Γctx)
-      (⊢→⊢#-ty Γinert Γ⊢τ∈K)
-  ctx-ctx# Γx-inert (c-cons-kd Γctx Γ⊢K-kd) =
-    let Γinert = unwrap-inert-ctx Γx-inert
-     in
-    c-cons-kd-#
-      (ctx-ctx# Γinert Γctx)
-      (⊢→⊢#-kd Γinert Γ⊢K-kd)
+⊢→⊢#-tm : ∀ {Γ e τ} → Γ inert-ctx → Γ ⊢tm e ∈ τ → Γ ⊢#tm e ∈ τ
+⊢→⊢#-tm Γinert p = ⊢→⊢# Γinert (Typing p)
 
-  ⊢→⊢#-tm : ∀ {Γ e τ} → Γ inert-ctx → Γ ⊢tm e ∈ τ → Γ ⊢#tm e ∈ τ
-  ⊢→⊢#-tm Γinert (ty-var Γ[x]⊢>τ) = ty-var-# Γ[x]⊢>τ
-  ⊢→⊢#-tm Γinert (ty-ℿ-intro Γ⊢e∈τ) = ty-ℿ-intro-# Γ⊢e∈τ
-  ⊢→⊢#-tm Γinert (ty-ℿ-elim Γ⊢f∈τ₁⇒τ₂ Γ⊢x∈τ₁) =
-    ty-ℿ-elim-#
-      (⊢→⊢#-tm Γinert Γ⊢f∈τ₁⇒τ₂)
-      (⊢→⊢#-tm Γinert Γ⊢x∈τ₁)
-  ⊢→⊢#-tm Γinert (ty-new-intro Γ⊢defs∈τ) = ty-new-intro-# Γ⊢defs∈τ
-  ⊢→⊢#-tm Γinert (ty-new-elim Γ⊢x∈[val]) =
-    ty-new-elim-# (⊢→⊢#-tm Γinert Γ⊢x∈[val])
-  ⊢→⊢#-tm Γinert (ty-let Γ⊢e₁∈τ Γ⊢e₂∈ρ) =
-    ty-let-# (⊢→⊢#-tm Γinert Γ⊢e₁∈τ) Γ⊢e₂∈ρ
-  ⊢→⊢#-tm Γinert (ty-rec-intro Γ⊢x∈τ) = ty-rec-intro-# (⊢→⊢#-tm Γinert Γ⊢x∈τ)
-  ⊢→⊢#-tm Γinert (ty-rec-elim Γ⊢x∈μτ) = ty-rec-elim-# (⊢→⊢#-tm Γinert Γ⊢x∈μτ)
-  ⊢→⊢#-tm Γinert (ty-and-intro Γ⊢x∈τ₁ Γ⊢x∈τ₂) =
-    ty-and-intro-#
-      (⊢→⊢#-tm Γinert Γ⊢x∈τ₁)
-      (⊢→⊢#-tm Γinert Γ⊢x∈τ₂)
-  ⊢→⊢#-tm Γinert (ty-sub Γ⊢e∈τ₁ Γ⊢τ₁≤τ₂) =
-    ty-sub-#
-      (⊢→⊢#-tm Γinert Γ⊢e∈τ₁)
-      (⊢→⊢#-st Γinert Γ⊢τ₁≤τ₂)
+⊢→⊢#-st : ∀ {Γ S U k} → Γ inert-ctx → Γ ⊢ty S ≤ U ∈ k → Γ ⊢#ty S ≤ U ∈ k
+⊢→⊢#-st Γinert p = ⊢→⊢# Γinert (Subtyping p)
 
-  ⊢ty→⊢#ty : ∀ {Γ Out} → Γ inert-ctx → Judgment Γ Out → Out
-  ⊢ty→⊢#ty {Γ} {Out} Γinert j = {! withMeasure PackedJudgment-height
-      (λ j → unpack j)
-      go
-      ((Γ , Out) , j) Γinert
-    where
-      go : ∀ j →
-        (∀ j' → PackedJudgment-height j' < PackedJudgment-height j → unpack j') →
-        unpack j
-      go (_ , Subtyping (st-refl Γ⊢A∈K)) rec Γinert =
-        st-refl-# (rec (_ , Kinding Γ⊢A∈K) (s≤s (≤-reflexive refl)) Γinert)
-      go (_ , Subtyping (st-trans Γ⊢A≤B Γ⊢B≤C)) rec Γinert =
-        st-trans-#
-          (rec (_ , Subtyping Γ⊢A≤B) (s≤s (m≤m⊔n _ _)) Γinert)
-          (rec (_ , Subtyping Γ⊢B≤C) (s≤s (m≤n⊔m _ _)) Γinert)
-      go (_ , Subtyping (st-top Γ⊢A∈S∙∙U)) rec Γinert =
-        st-top-# (rec (_ , Kinding Γ⊢A∈S∙∙U) (s≤s (≤-reflexive refl)) Γinert)
-      go (_ , Subtyping (st-bot Γ⊢A∈S∙∙U)) rec Γinert =
-        st-bot-# (rec (_ , Kinding Γ⊢A∈S∙∙U) (s≤s (≤-reflexive refl)) Γinert)
-      go (_ , Subtyping (st-and-l₁ Γ⊢τ₁∧τ₂∈K)) rec Γinert =
-        st-and-l₁-# (rec (_ , Kinding Γ⊢τ₁∧τ₂∈K) (s≤s (≤-reflexive refl)) Γinert)
-      go (_ , Subtyping (st-and-l₂ Γ⊢τ₁∧τ₂∈K)) rec Γinert =
-        st-and-l₂-# (rec (_ , Kinding Γ⊢τ₁∧τ₂∈K) (s≤s (≤-reflexive refl)) Γinert)
-      go (_ , Subtyping (st-and₂ Γ⊢ρ≤τ₁∈K Γ⊢ρ≤τ₂∈K)) rec Γinert =
-        st-and₂-#
-          (rec (_ , Subtyping Γ⊢ρ≤τ₁∈K) (s≤s (m≤m⊔n _ _)) Γinert)
-          (rec (_ , Subtyping Γ⊢ρ≤τ₂∈K) (s≤s (m≤n⊔m _ _)) Γinert)
-      go (_ , Subtyping (st-field Γ⊢τ₁≤τ₂∈K)) rec Γinert =
-        st-field-# (rec (_ , Subtyping Γ⊢τ₁≤τ₂∈K) (s≤s (≤-reflexive refl)) Γinert)
-      go (_ , Subtyping (st-typ Γ⊢J≤K)) rec Γinert = st-typ-# (⊢→⊢#-sk Γinert Γ⊢J≤K)
-      go (_ , Subtyping t@(st-app Γ⊢A₁≤A₂ e@(st-antisym Γ⊢B₁≤B₂ Γ⊢B₂≤B₁))) rec Γinert =
-        st-app-#
-          (rec (_ , Subtyping Γ⊢A₁≤A₂) (s≤s (m≤m⊔n _ _)) Γinert)
-          (st-antisym-#
-            (rec (_ , Subtyping Γ⊢B₁≤B₂) p1 Γinert)
-            (rec (_ , Subtyping Γ⊢B₂≤B₁) p2 Γinert))
-        where
-          open Data.Nat.Properties.≤-Reasoning
+⊢→⊢#-ty : ∀ {Γ τ k} → Γ inert-ctx → Γ ⊢ty τ ∈ k → Γ ⊢#ty τ ∈ k
+⊢→⊢#-ty Γinert p = ⊢→⊢# Γinert (Kinding p)
 
-          p1 : ⊢ty[]≤[]∈[]-h Γ⊢B₁≤B₂ < ⊢ty[]≤[]∈[]-h t
-          p1 = begin-strict
-              ⊢ty[]≤[]∈[]-h Γ⊢B₁≤B₂
-            <⟨ s≤s (m≤m⊔n _ _) ⟩
-              suc (⊢ty[]≤[]∈[]-h Γ⊢B₁≤B₂ ⊔ ⊢ty[]≤[]∈[]-h Γ⊢B₂≤B₁)
-            <⟨ s≤s (m≤n⊔m _ _) ⟩
-              suc (⊢ty[]≤[]∈[]-h Γ⊢A₁≤A₂ ⊔ ⊢ty[]==[]-h e)
-            ≡⟨⟩
-              ⊢ty[]≤[]∈[]-h t
-            ∎
+⊢→⊢#-sk : ∀ {Γ J K} → Γ inert-ctx → Γ ⊢kd J ≤ K → Γ ⊢#kd J ≤ K
+⊢→⊢#-sk Γinert p = ⊢→⊢# Γinert (Subkinding p)
 
-          p2 : ⊢ty[]≤[]∈[]-h Γ⊢B₂≤B₁ < ⊢ty[]≤[]∈[]-h t
-          p2 = begin-strict
-              ⊢ty[]≤[]∈[]-h Γ⊢B₂≤B₁
-            <⟨ s≤s (m≤n⊔m _ _) ⟩
-              suc (⊢ty[]≤[]∈[]-h Γ⊢B₁≤B₂ ⊔ ⊢ty[]≤[]∈[]-h Γ⊢B₂≤B₁)
-            <⟨ s≤s (m≤n⊔m _ _) ⟩
-              suc (⊢ty[]≤[]∈[]-h Γ⊢A₁≤A₂ ⊔ ⊢ty[]==[]-h e)
-            ≡⟨⟩
-              ⊢ty[]≤[]∈[]-h t
-            ∎
-      go (_ , Subtyping (st-bnd₁ Γ⊢A∈S∙∙U)) rec Γinert =
-        st-bnd₁-# (rec (_ , Kinding Γ⊢A∈S∙∙U) (s≤s (≤-reflexive refl)) Γinert)
-      go (_ , Subtyping (st-bnd₂ Γ⊢A∈S∙∙U)) rec Γinert =
-        st-bnd₂-# (rec (_ , Kinding Γ⊢A∈S∙∙U) (s≤s (≤-reflexive refl)) Γinert)
-      {-
-      go (_ , Subtyping (st-β₁ Γ⊢A∈K Γ⊢B∈J)) = {!!}
-      go (_ , Subtyping (st-β₂ Γ⊢A∈K Γ⊢B∈J)) = {!!}
-      -}
-      go (_ , Subtyping p) rec Γinert = {!!}
-      go (_ , Kinding (k-var Γctx Γ[x]⊢>τ)) rec Γinert =
-        k-var-# (ctx-ctx# Γinert Γctx) Γ[x]⊢>τ
-      go (_ , Kinding p) rec Γinert = {!!} !}
-
-  ⊢→⊢#-st : ∀ {Γ S U k} → Γ inert-ctx → Γ ⊢ty S ≤ U ∈ k → Γ ⊢#ty S ≤ U ∈ k
-  ⊢→⊢#-st Γinert p = ⊢ty→⊢#ty Γinert (Subtyping p)
-
-  ⊢→⊢#-ty : ∀ {Γ τ k} → Γ inert-ctx → Γ ⊢ty τ ∈ k → Γ ⊢#ty τ ∈ k
-  ⊢→⊢#-ty Γinert p = ⊢ty→⊢#ty Γinert (Kinding p)
-  {-
-  ⊢→⊢#-ty Γinert (k-var Γctx Γ[x]⊢>τ) = k-var-# (ctx-ctx# Γinert Γctx) Γ[x]⊢>τ
-  ⊢→⊢#-ty Γinert k-top = k-top-#
-  ⊢→⊢#-ty Γinert k-bot = k-bot-#
-  ⊢→⊢#-ty Γinert (k-sing Γ⊢A∈S∙∙U) = k-sing-# (⊢→⊢#-ty Γinert Γ⊢A∈S∙∙U)
-  ⊢→⊢#-ty Γinert (k-arr Γ⊢A∈✶ Γ⊢B∈✶) = k-arr-# (⊢→⊢#-ty Γinert Γ⊢A∈✶) Γ⊢B∈✶
-  ⊢→⊢#-ty Γinert (k-abs Γ⊢J-kd Γ⊢A∈K) =
-    k-abs-#
-      (⊢→⊢#-kd Γinert Γ⊢J-kd)
-      Γ⊢A∈K
-  ⊢→⊢#-ty Γinert (k-app Γ⊢f∈ℿJK Γ⊢τ∈J) =
-    k-app-#
-      (⊢→⊢#-ty Γinert Γ⊢f∈ℿJK)
-      (⊢→⊢#-ty Γinert Γ⊢τ∈J)
-  ⊢→⊢#-ty Γinert (k-intersect Γ⊢τ₁∈S₁∙∙U₁ Γ⊢τ₂∈S₂∙∙U₂) =
-    k-intersect-#
-      (⊢→⊢#-ty Γinert Γ⊢τ₁∈S₁∙∙U₁)
-      (⊢→⊢#-ty Γinert Γ⊢τ₂∈S₂∙∙U₂)
-  ⊢→⊢#-ty Γinert (k-sub Γ⊢τ∈J Γ⊢J≤K) =
-    k-sub-#
-      (⊢→⊢#-ty Γinert Γ⊢τ∈J)
-      (⊢→⊢#-sk Γinert Γ⊢J≤K)
-  ⊢→⊢#-ty Γinert (k-field Γ⊢τ∈A∙∙B) = k-field-# (⊢→⊢#-ty Γinert Γ⊢τ∈A∙∙B)
-  ⊢→⊢#-ty Γinert (k-typ Γ⊢K-kd) = k-typ-# (⊢→⊢#-kd Γinert Γ⊢K-kd)
-  ⊢→⊢#-ty Γinert (k-sel Γ⊢x∈[typA∶k]) =
-    let KS τ Γ⊢#τ∈k U Γ⊢!x∈[typA∶S[k]] =
-          k-sel-premise Γinert (⊢→⊢#-tm Γinert Γ⊢x∈[typA∶k])
-     in
-    k-sub-#
-      (k-sel-# Γ⊢#τ∈k Γ⊢!x∈[typA∶S[k]])
-      (sing-sub Γ⊢#τ∈k)
-      -}
-
-  ⊢→⊢#-sk : ∀ {Γ J K} → Γ inert-ctx → Γ ⊢kd J ≤ K → Γ ⊢#kd J ≤ K
-  ⊢→⊢#-sk Γinert (sk-intv Γ⊢S₂≤S₁ Γ⊢U₁≤U₂) =
-    sk-intv-#
-      (⊢→⊢#-st Γinert Γ⊢S₂≤S₁)
-      (⊢→⊢#-st Γinert Γ⊢U₁≤U₂)
-  ⊢→⊢#-sk Γinert (sk-darr Γ⊢ℿJ₁K₁-kd Γ⊢J₂≤J₁ Γ⊢K₁≤K₂) =
-    sk-darr-#
-      (⊢→⊢#-kd Γinert Γ⊢ℿJ₁K₁-kd)
-      (⊢→⊢#-sk Γinert Γ⊢J₂≤J₁)
-      Γ⊢K₁≤K₂
-
-  ⊢→⊢#-kd : ∀ {Γ k} → Γ inert-ctx → Γ ⊢ k kd → Γ ⊢# k kd
-  ⊢→⊢#-kd Γinert (wf-intv Γ⊢S∈✶ Γ⊢U∈✶) =
-    wf-intv-#
-      (⊢→⊢#-ty Γinert Γ⊢S∈✶)
-      (⊢→⊢#-ty Γinert Γ⊢U∈✶)
-  ⊢→⊢#-kd Γinert (wf-darr Γ⊢J-kd Γ⊢K-kd) =
-    wf-darr-# (⊢→⊢#-kd Γinert Γ⊢J-kd) Γ⊢K-kd
+⊢→⊢#-kd : ∀ {Γ k} → Γ inert-ctx → Γ ⊢ k kd → Γ ⊢# k kd
+⊢→⊢#-kd Γinert p = ⊢→⊢# Γinert (IsKd p)
 

@@ -112,10 +112,9 @@ postulate
     Γ & x ~ Ty τ ⊢kd J ≤ K
 
   narrowing-sk-kd : ∀ {Γ τ x J₁ J₂ K} →
-    (p : Γ ⊢ty τ ∈ K) →
-    (pf : Γ [ x ]⊢> Kd J₂) →
+    (p : Γ & x ~ Kd J₂ ⊢ty τ ∈ K) →
     Γ ⊢kd J₁ ≤ J₂ →
-    Σ[ p' ∈ replace Γ x (Kd J₁) pf ⊢ty τ ∈ K ] (⊢ty[]∈[]-h p ≡ ⊢ty[]∈[]-h p')
+    Σ[ p' ∈ Γ & x ~ Kd J₁ ⊢ty τ ∈ K ] (⊢ty[]∈[]-h p ≡ ⊢ty[]∈[]-h p')
 
   narrowing-sk-tm : ∀ {Γ e x τ J K} →
     Γ ⊢tm e ∈ τ →

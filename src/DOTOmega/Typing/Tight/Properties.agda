@@ -15,10 +15,13 @@ open import DOTOmega.Typing.Tight TypeL TermL
 open import DOTOmega.Typing.Precise TypeL TermL
 
 postulate
-  sing-sub : ∀{Γ τ k} → Γ ⊢#ty τ ∈ k → Γ ⊢#kd S[ τ ∈ k ] ≤ k
+  sing-sub : ∀{Γ τ k} → Γ ⊢ty τ ∈ k → Γ ⊢kd S[ τ ∈ k ] ≤ k
+
+  sing-sub-# : ∀{Γ τ k} → Γ ⊢#ty τ ∈ k → Γ ⊢#kd S[ τ ∈ k ] ≤ k
+
+  sing-inert : ∀ τ k → S[ τ ∈ k ] inert-kd
 
 postulate
   dec-typ-inv : ∀ {Γ x τ M k} →
     Γ ⊢!var x ∈ τ ⟫ [ typ M ∶ k ] →
     Σ[ y ∈ Type × Kind ](k ≡ (S[ proj₁ y ∈ proj₂ y ]))
-
