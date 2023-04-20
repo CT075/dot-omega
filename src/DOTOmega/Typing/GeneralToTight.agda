@@ -45,19 +45,35 @@ k-sel-premise : ∀ {Γ x M k} →
   Γ ⊢#tm ` x ∈ [ typ M ∶ k ] →
   KSelPremise Γ x M k
 k-sel-premise {Γ} {x} {M} {k} Γinert Γ⊢#x∈[M∶k] =
-  k-sel-premise-## (⊢#→⊢##-var Γinert Γ⊢#x∈[M∶k])
+    k-sel-premise-## (⊢#→⊢##-var Γinert Γ⊢#x∈[M∶k])
   where
     -- TODO: this is the most important part of the proof
-    postulate
-      k-sel-premise-## : Γ ⊢##var x ∈ [ typ M ∶ k ] → KSelPremise Γ x M k
-    {-
-    k-sel-premise-## (ty-precise-## Γ⊢!x∈[M∶k]) = {! !}
+    k-sel-premise-## : Γ ⊢##var x ∈ [ typ M ∶ k ] → KSelPremise Γ x M k
+    -- At last, we use the fact that Γ is inert
+    k-sel-premise-## (ty-precise-## (var-! Γ[x]⊢>[M∶k])) = {! !}
+    k-sel-premise-## (ty-precise-## (rec-e-! Γ⊢!x∈μρ eq)) rewrite eq = {! !}
+    k-sel-premise-## (ty-precise-## (rec-and-!₁ Γ⊢!x∈S∧U)) = {! !}
+    k-sel-premise-## (ty-precise-## (rec-and-!₂ Γ⊢!x∈S∧U)) = {! !}
     k-sel-premise-## (ty-type-## Γ⊢##x∈[M∶J] Γ⊢#J≤K) = {! !}
-    -}
 
--- This extremely nasty well-founded induction is necessary to tell the
--- termination checker that narrowing the kinding judgment doesn't create
--- a taller derivation tree.
+-- The main proof, converting general typing [Γ ⊢ty e ∈ τ] to tight typing
+-- [Γ ⊢#ty e ∈ τ].
+--
+-- Instead of structural induction on the typing derivation itself, we perform
+-- natural induction on the height of the derivation tree. This is necessary
+-- because we have to narrow one of the premises in the [st-β] cases before
+-- citing the inductive hypothesis, which will freak out the termination
+-- checker if done naively.
+--
+-- Unfortunately, these rules are inherently extremely mutually recursive,
+-- which means we need to use mutually well-founded recursion. To make it more
+-- manageable, we unify each general typing judgment into the single [Judgment]
+-- type. For more information on using GADTs for well-founded mutual recursion,
+-- check out this blog post:
+--
+-- (TODO: write blog post)
+--
+-- The main body of this proof is the function ⊢→⊢#-step.
 
 data Judgment : Context → Set → Set where
   IsCtx : ∀{Γ} → Γ ctx → Judgment Γ (Γ ctx-#)
@@ -331,6 +347,7 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
         ⊢kd[]≤[]-h t
       ∎
 
+-- Convenience aliases
 
 ⊢→⊢# : ∀ {Γ Out} → Γ inert-ctx → Judgment Γ Out → Out
 ⊢→⊢# {Γ} {Out} Γinert j = ⊢→⊢#-step ((Γ , Out) , j) Γinert (<-wf ((Γ , Out) , j))

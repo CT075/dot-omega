@@ -7,6 +7,7 @@ module DOTOmega.Typing.Precise {ℓ}
   where
 
 open import Data.List using (map)
+open import Relation.Binary.PropositionalEquality
 
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing TypeL TermL
@@ -19,9 +20,10 @@ infix 4 _⊢!var_∈_⟫_
 
 data _⊢!var_∈_⟫_ (Γ : Ctx VarFact) : Var → Type → Type → Set where
   var-! : ∀{x τ} → Γ [ x ]⊢> Ty τ → Γ ⊢!var Free x ∈ τ ⟫ τ
-  rec-e-! : ∀{x τ ρ} →
+  rec-e-! : ∀{x τ ρ xρ} →
     Γ ⊢!var Free x ∈ τ ⟫ μ ρ →
-    Γ ⊢!var Free x ∈ τ ⟫ plugType (Free x) ρ
+    xρ ≡ plugType (Free x) ρ →
+    Γ ⊢!var Free x ∈ τ ⟫ xρ
   rec-and-!₁ : ∀{x τ S U} →
     Γ ⊢!var Free x ∈ τ ⟫ S ∧ U → Γ ⊢!var Free x ∈ τ ⟫ S
   rec-and-!₂ : ∀{x τ S U} →

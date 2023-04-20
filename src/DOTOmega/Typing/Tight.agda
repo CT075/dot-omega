@@ -23,21 +23,6 @@ infix 4 _⊢#ty_==_∈_
 
 infix 4 _⊢#tm_∈_
 
-infix 4 _inert-kd _inert-ty _inert-ctx
-
-data _inert-kd : Kind → Set where
-  intv-inert : ∀ {A} → A ∙∙ A inert-kd
-  pi-inert : ∀ {J K} → K inert-kd → ℿ J K inert-kd
-
-data _inert-ty : Type → Set where
-  pi-inert : ∀ {τ₁ τ₂} → ℿ τ₁ τ₂ inert-ty
-  -- TODO: inert records
-
-data _inert-ctx : Context → Set where
-  empty-inert : [] inert-ctx
-  cons-inert-ty : ∀ {Γ x τ} → Γ inert-ctx → τ inert-ty → Γ & x ~ Ty τ inert-ctx
-  cons-inert-kd : ∀ {Γ x k} → Γ inert-ctx → k inert-kd → Γ & x ~ Kd k inert-ctx
-
 S[_∈_] : Type → Kind → Kind
 S[ τ ∈ A ∙∙ B ] = τ ∙∙ τ
 S[ f ∈ ℿ J K ] = ℿ J (S[ f ⊡ `(Bound zero) ∈ K ])
