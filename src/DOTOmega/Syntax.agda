@@ -1,9 +1,11 @@
 open import Level renaming (zero to lzero; suc to lsuc) hiding (Lift)
 open import Relation.Binary using (DecSetoid)
 
-module DOTOmega.Syntax {ℓ}
-    (TypeL : DecSetoid lzero ℓ)
-    (TermL : DecSetoid lzero ℓ)
+-- TODO: We basically never actually use the Setoid structure of labels
+-- anywhere (we can use [PropositionalEquality] basically everywhere).
+module DOTOmega.Syntax
+    (TypeL : DecSetoid lzero lzero)
+    (TermL : DecSetoid lzero lzero)
   where
 
 open import Data.Nat using (ℕ; suc; zero)
@@ -16,6 +18,8 @@ open import Data.Var using (Var; Lift; Subst)
 
 TypeLabel = DecSetoid.Carrier TypeL
 TermLabel = DecSetoid.Carrier TermL
+_≈Ty_ = DecSetoid._≈_ TypeL
+_≈Tm_ = DecSetoid._≈_ TermL
 
 infix 19 typ_∶_
 infix 20 _∙∙_
@@ -65,11 +69,15 @@ mutual
 
 -- Utility functions
 
+data Label : Set where
+  TyL : TypeLabel → Label
+  TmL : TermLabel → Label
+
 data defnMatchesType : TypeLabel → Defn → Set where
-  dmty-lbl : ∀{A τ} → defnMatchesType A (typ A =' τ)
+  dmty-lbl : ∀{A A' τ} → A ≈Ty A' → defnMatchesType A' (typ A =' τ)
 
 data defnMatchesTerm : TermLabel → Defn → Set where
-  dmtm-lbl : ∀{ℓ e} → defnMatchesTerm ℓ (val ℓ =' e)
+  dmtm-lbl : ∀{ℓ ℓ' e} → ℓ ≈Tm ℓ' → defnMatchesTerm ℓ' (val ℓ =' e)
 
 _∈_ : Defn → List Defn → Set
 (typ A =' _) ∈ ds = Any (defnMatchesType A) ds

@@ -1,9 +1,9 @@
 open import Level using () renaming (zero to lzero; suc to lsuc)
 open import Relation.Binary using (DecSetoid)
 
-module DOTOmega.Typing.GeneralToTight {ℓ}
-    (TypeL : DecSetoid lzero ℓ)
-    (TermL : DecSetoid lzero ℓ)
+module DOTOmega.Typing.GeneralToTight
+    (TypeL : DecSetoid lzero lzero)
+    (TermL : DecSetoid lzero lzero)
   where
 
 open import Data.Nat using (ℕ; suc; _⊔_; s≤s) renaming (_<_ to _<ℕ_)
@@ -11,7 +11,7 @@ open import Data.Nat.Properties using (≤-reflexive; ≤-trans; m≤m⊔n; m≤
 open import Data.Nat.Induction.Extensions
 open import Data.Product
 open import Data.List hiding ([_])
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality hiding (J)
 open import Induction.WellFounded using (Acc; acc)
 
 open import Data.Context
@@ -32,13 +32,17 @@ postulate
   -- which Agda can have trouble with unifying.
   unwrap-inert-ctx : ∀ {Γ x fact} → (Γ & x ~ fact) inert-ctx → Γ inert-ctx
 
-record KSelPremise (Γ : Context) (x : Var) (M : TypeLabel) (k : Kind) : Set where
+-- TODO: This construction requires subkind transitivity, but we could possibly
+-- avoid it by baking the proof of [Γ ⊢#kd τ ∈ K] in directly.
+record KSelPremise (Γ : Context) (x : Var) (M : TypeLabel) (K : Kind) : Set where
   constructor KS
   field
     τ : Type
-    Γ⊢#τ∈k : Γ ⊢#ty τ ∈ k
+    J : Kind
+    Γ⊢#τ∈J : Γ ⊢#ty τ ∈ J
+    Γ⊢#J≤K : Γ ⊢#kd J ≤ K
     U : Type
-    Γ⊢!x∈S[τ∶k] : Γ ⊢!var x ∈ U ⟫ [ typ M ∶ S[ τ ∈ k ] ]
+    Γ⊢!x∈S[τ∶J] : Γ ⊢!var x ∈ U ⟫ [ typ M ∶ S[ τ ∈ J ] ]
 
 k-sel-premise : ∀ {Γ x M k} →
   Γ inert-ctx →
@@ -48,13 +52,16 @@ k-sel-premise {Γ} {x} {M} {k} Γinert Γ⊢#x∈[M∶k] =
     k-sel-premise-## (⊢#→⊢##-var Γinert Γ⊢#x∈[M∶k])
   where
     -- TODO: this is the most important part of the proof
-    k-sel-premise-## : Γ ⊢##var x ∈ [ typ M ∶ k ] → KSelPremise Γ x M k
+    k-sel-premise-## : ∀ {K} → Γ ⊢##var x ∈ [ typ M ∶ K ] → KSelPremise Γ x M K
     -- At last, we use the fact that Γ is inert
-    k-sel-premise-## (ty-precise-## (var-! Γ[x]⊢>[M∶k])) = {! !}
-    k-sel-premise-## (ty-precise-## (rec-e-! Γ⊢!x∈μρ eq)) rewrite eq = {! !}
-    k-sel-premise-## (ty-precise-## (rec-and-!₁ Γ⊢!x∈S∧U)) = {! !}
-    k-sel-premise-## (ty-precise-## (rec-and-!₂ Γ⊢!x∈S∧U)) = {! !}
-    k-sel-premise-## (ty-type-## Γ⊢##x∈[M∶J] Γ⊢#J≤K) = {! !}
+    k-sel-premise-## (ty-precise-## Γ⊢!x∈U⟫[M∶k]) = {! !}
+    k-sel-premise-## (ty-type-## Γ⊢##x∈[M∶J] Γ⊢#J≤K) =
+      let KS τ J' Γ⊢#τ∈J' Γ⊢#J'≤J U Γ⊢!x∈U⟫[M∶S[τ∶J']] =
+            k-sel-premise-## Γ⊢##x∈[M∶J]
+          Γ⊢#τ∈J = k-sub-# Γ⊢#τ∈J' Γ⊢#J'≤J
+          Γ⊢#J'≤K = sk-trans-# Γ⊢#J'≤J Γ⊢#J≤K
+       in
+      KS τ J' Γ⊢#τ∈J' Γ⊢#J'≤K U Γ⊢!x∈U⟫[M∶S[τ∶J']]
 
 -- The main proof, converting general typing [Γ ⊢ty e ∈ τ] to tight typing
 -- [Γ ⊢#ty e ∈ τ].
@@ -298,18 +305,20 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
 ⊢→⊢#-step (_ , Kinding (k-typ Γ⊢K-kd)) Γinert (acc rec) =
   k-typ-#
     (⊢→⊢#-step (_ , IsKd Γ⊢K-kd) Γinert (rec _ (s≤s (≤-reflexive refl))))
-⊢→⊢#-step (_ , Kinding (k-sel Γ⊢x∈[typA∶k])) Γinert (acc rec) =
-  let KS τ Γ⊢#τ∈k U Γ⊢!x∈[typA∶S[k]] =
+⊢→⊢#-step (_ , Kinding (k-sel Γ⊢x∈[typM∶K])) Γinert (acc rec) =
+  let KS τ J Γ⊢#τ∈J Γ⊢#J≤K U Γ⊢!x∈[typM∶S[J]] =
         k-sel-premise
           Γinert
           (⊢→⊢#-step
-            (_ , Typing Γ⊢x∈[typA∶k])
+            (_ , Typing Γ⊢x∈[typM∶K])
             Γinert
             (rec _ (s≤s (≤-reflexive refl))))
+      Γ⊢#x∙M∈S[J] = k-sel-# Γ⊢#τ∈J Γ⊢!x∈[typM∶S[J]]
+      Γ⊢#S[J]≤J = sing-sub-# Γ⊢#τ∈J
+      Γ⊢#x∙M∈J = k-sub-# Γ⊢#x∙M∈S[J] Γ⊢#S[J]≤J
+      Γ⊢#x∙M∈K = k-sub-# Γ⊢#x∙M∈J Γ⊢#J≤K
    in
-  k-sub-#
-    (k-sel-# Γ⊢#τ∈k Γ⊢!x∈[typA∶S[k]])
-    (sing-sub-# Γ⊢#τ∈k)
+  Γ⊢#x∙M∈K
 
 -- Kind validity
 ⊢→⊢#-step (_ , IsKd (wf-intv Γ⊢S∈✶ Γ⊢U∈✶)) Γinert (acc rec) =

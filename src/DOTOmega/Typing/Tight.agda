@@ -1,9 +1,9 @@
 open import Level renaming (zero to lzero; suc to lsuc) hiding (Lift)
 open import Relation.Binary using (DecSetoid)
 
-module DOTOmega.Typing.Tight {ℓ}
-    (TypeL : DecSetoid lzero ℓ)
-    (TermL : DecSetoid lzero ℓ)
+module DOTOmega.Typing.Tight
+    (TypeL : DecSetoid lzero lzero)
+    (TermL : DecSetoid lzero lzero)
   where
 
 open import Data.Nat using (ℕ; zero; suc)

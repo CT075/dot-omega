@@ -1,9 +1,9 @@
 open import Level renaming (zero to lzero; suc to lsuc) hiding (Lift)
 open import Relation.Binary using (DecSetoid)
 
-module DOTOmega.Soundness {ℓ}
-    (TypeL : DecSetoid lzero ℓ)
-    (TermL : DecSetoid lzero ℓ)
+module DOTOmega.Soundness
+    (TypeL : DecSetoid lzero lzero)
+    (TermL : DecSetoid lzero lzero)
   where
 
 open import Data.String using (String)

@@ -1,13 +1,14 @@
 open import Level renaming (zero to lzero; suc to lsuc) hiding (Lift)
 open import Relation.Binary using (DecSetoid)
 
-module DOTOmega.Typing.Invertible.Properties {ℓ}
-    (TypeL : DecSetoid lzero ℓ)
-    (TermL : DecSetoid lzero ℓ)
+module DOTOmega.Typing.Invertible.Properties
+    (TypeL : DecSetoid lzero lzero)
+    (TermL : DecSetoid lzero lzero)
   where
 
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing.Tight TypeL TermL
+open import DOTOmega.Typing.Tight.Properties TypeL TermL
 open import DOTOmega.Typing.Precise TypeL TermL
 open import DOTOmega.Typing.Invertible TypeL TermL
 
