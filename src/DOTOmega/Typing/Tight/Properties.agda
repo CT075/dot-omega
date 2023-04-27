@@ -20,7 +20,8 @@ open import DOTOmega.Typing.Precise TypeL TermL
 
 open import Data.Context
 
--- TODO: Maybe this should go into its own module?
+-- TODO: Inert contexts and singletons should go into their own module.
+
 -- Definition and properties of inert contexts
 
 infix 4 _inert-kd _inert-ty _inert-ctx _recd _is-recd-label
@@ -82,13 +83,15 @@ postulate
 
   sing-sub-# : ∀{Γ τ k} → Γ ⊢#ty τ ∈ k → Γ ⊢#kd S[ τ ∈ k ] ≤ k
 
+  sing-idempotent : ∀ τ K → S[ τ ∈ S[ τ ∈ K ] ] ≡ S[ τ ∈ K ]
+
   sing-inert : ∀ τ k → S[ τ ∈ k ] inert-kd
 
   sing-trans-#-l : ∀{Γ τ K J} → Γ ⊢#kd K ≤ J → Γ ⊢#kd S[ τ ∈ K ] ≤ S[ τ ∈ J ]
 
   sk-trans-# : ∀{Γ J K L} → Γ ⊢#kd J ≤ K → Γ ⊢#kd K ≤ L → Γ ⊢#kd J ≤ L
 
-postulate
-  dec-typ-inv : ∀ {Γ x τ M k} →
-    Γ ⊢!var x ∈ τ ⟫ [ typ M ∶ k ] →
-    Σ[ y ∈ Type × Kind ](k ≡ (S[ proj₁ y ∈ proj₂ y ]))
+  -- probably need kind validity here as well
+  sk-refl-# : ∀{Γ} K → Γ ⊢#kd K ≤ K
+
+  types-wf-# : ∀{Γ t τ} → Γ ⊢#tm t ∈ τ → Σ[ K ∈ Kind ] (Γ ⊢#ty τ ∈ K)

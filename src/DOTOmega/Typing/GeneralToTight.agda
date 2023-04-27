@@ -23,6 +23,7 @@ open import DOTOmega.Typing.Properties TypeL TermL
 open import DOTOmega.Typing.Tight TypeL TermL
 open import DOTOmega.Typing.Tight.Properties TypeL TermL
 open import DOTOmega.Typing.Precise TypeL TermL
+open import DOTOmega.Typing.Precise.Properties TypeL TermL
 open import DOTOmega.Typing.Invertible TypeL TermL
 open import DOTOmega.Typing.Invertible.Properties TypeL TermL
 
@@ -31,6 +32,26 @@ postulate
   -- function performing some computation (as opposed to a constructor),
   -- which Agda can have trouble with unifying.
   unwrap-inert-ctx : ∀ {Γ x fact} → (Γ & x ~ fact) inert-ctx → Γ inert-ctx
+
+  sing-incl : ∀ {Γ J τ K} → J ≡ S[ τ ∈ K ] → Γ ⊢ J kd → Γ ⊢ty τ ∈ S[ τ ∈ K ]
+
+sing-inv-∙∙ : ∀ τ K {S U} → S[ τ ∈ K ] ≡ S ∙∙ U →
+  Σ[ p ∈ Type × Type ] (K ≡ proj₁ p ∙∙ proj₂ p)
+sing-inv-∙∙ τ (S ∙∙ U) eq = ((S , U), refl)
+
+un-∙∙ : ∀ {A B C D} → A ∙∙ B ≡ C ∙∙ D → A ≡ C
+un-∙∙ refl = refl
+
+sing-incl-# : ∀ {Γ J τ K} → J ≡ S[ τ ∈ K ] → Γ ⊢# J kd → Γ ⊢#ty τ ∈ S[ τ ∈ K ]
+sing-incl-# {τ = τ} {K = K@(B ∙∙ C)} eq (wf-intv-# Γ⊢#τ∈✶ Γ⊢#τ∈✶')
+  rewrite eq rewrite proj₂ (sing-inv-∙∙ τ K refl) rewrite un-∙∙ eq =
+    k-sing-# Γ⊢#τ∈✶
+sing-incl-# {Γ = Γ} {τ = τ} {K = K} eq (wf-darr-# Γ⊢#Jkd Γx∶J⊢S[τ∈K]kd)
+    rewrite eq = foo
+  where
+    -- TODO: need to show that singletons preserve opening
+    postulate
+      foo : Γ ⊢#ty τ ∈ S[ τ ∈ K ]
 
 -- TODO: This construction requires subkind transitivity, but we could possibly
 -- avoid it by baking the proof of [Γ ⊢#kd τ ∈ K] in directly.
@@ -44,17 +65,40 @@ record KSelPremise (Γ : Context) (x : Var) (M : TypeLabel) (K : Kind) : Set whe
     U : Type
     Γ⊢!x∈S[τ∶J] : Γ ⊢!var x ∈ U ⟫ [ typ M ∶ S[ τ ∈ J ] ]
 
-k-sel-premise : ∀ {Γ x M k} →
+k-sel-premise : ∀ {Γ x M K} →
   Γ inert-ctx →
-  Γ ⊢#tm ` x ∈ [ typ M ∶ k ] →
-  KSelPremise Γ x M k
+  Γ ⊢#tm ` x ∈ [ typ M ∶ K ] →
+  KSelPremise Γ x M K
 k-sel-premise {Γ} {x} {M} {k} Γinert Γ⊢#x∈[M∶k] =
     k-sel-premise-## (⊢#→⊢##-var Γinert Γ⊢#x∈[M∶k])
   where
-    -- TODO: this is the most important part of the proof
     k-sel-premise-## : ∀ {K} → Γ ⊢##var x ∈ [ typ M ∶ K ] → KSelPremise Γ x M K
-    -- At last, we use the fact that Γ is inert
-    k-sel-premise-## (ty-precise-## Γ⊢!x∈U⟫[M∶k]) = {! !}
+
+    k-sel-premise-## (ty-precise-## {τ = U} Γ⊢!x∈U⟫[M∶K])
+      with precise-recd-kind-is-singleton Γinert Γ⊢!x∈U⟫[M∶K]
+    ... | Sing τ J eq rewrite eq = KS
+        τ
+        S[τ∈J]
+        (sing-incl-# refl Γ⊢#S[τ∈J]kd)
+        (sk-refl-# S[τ∈J])
+        U
+        Γ⊢!x∈[M∶S[τ∈S[τ∈J]]]
+      where
+        S[τ∈J] = S[ τ ∈ J ]
+
+        Γ⊢!x∈[M∶S[τ∈S[τ∈J]]] : Γ ⊢!var x ∈ U ⟫ [ typ M ∶ S[ τ ∈ S[ τ ∈ J ] ] ]
+        Γ⊢!x∈[M∶S[τ∈S[τ∈J]]] rewrite sing-idempotent τ J = Γ⊢!x∈U⟫[M∶K]
+
+        Γ⊢#x∈[M∶S[τ∈J]] = ⊢##→⊢#-var (ty-precise-## Γ⊢!x∈U⟫[M∶K])
+        Γ⊢#[M∶S[τ∈J]]∈K' = types-wf-# Γ⊢#x∈[M∶S[τ∈J]]
+
+        unwrap : ∀{K} → Γ ⊢#ty [ typ M ∶ S[ τ ∈ J ] ] ∈ K → Γ ⊢# S[ τ ∈ J ] kd
+        unwrap (k-sing-# Γ⊢#[M∶S[τ∈J]]∈S∙∙U) = unwrap Γ⊢#[M∶S[τ∈J]]∈S∙∙U
+        unwrap (k-sub-# Γ⊢#[M∶S[τ∈J]]∈K' Γ⊢#K'≤K) = unwrap Γ⊢#[M∶S[τ∈J]]∈K'
+        unwrap (k-typ-# Γ⊢#S[τ∈J]kd) = Γ⊢#S[τ∈J]kd
+
+        Γ⊢#S[τ∈J]kd = unwrap (proj₂ Γ⊢#[M∶S[τ∈J]]∈K')
+
     k-sel-premise-## (ty-type-## Γ⊢##x∈[M∶J] Γ⊢#J≤K) =
       let KS τ J' Γ⊢#τ∈J' Γ⊢#J'≤J U Γ⊢!x∈U⟫[M∶S[τ∶J']] =
             k-sel-premise-## Γ⊢##x∈[M∶J]
@@ -305,15 +349,15 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
 ⊢→⊢#-step (_ , Kinding (k-typ Γ⊢K-kd)) Γinert (acc rec) =
   k-typ-#
     (⊢→⊢#-step (_ , IsKd Γ⊢K-kd) Γinert (rec _ (s≤s (≤-reflexive refl))))
-⊢→⊢#-step (_ , Kinding (k-sel Γ⊢x∈[typM∶K])) Γinert (acc rec) =
-  let KS τ J Γ⊢#τ∈J Γ⊢#J≤K U Γ⊢!x∈[typM∶S[J]] =
+⊢→⊢#-step (_ , Kinding (k-sel Γ⊢x∈[M∶K])) Γinert (acc rec) =
+  let KS τ J Γ⊢#τ∈J Γ⊢#J≤K U Γ⊢!x∈[M∶S[J]] =
         k-sel-premise
           Γinert
           (⊢→⊢#-step
-            (_ , Typing Γ⊢x∈[typM∶K])
+            (_ , Typing Γ⊢x∈[M∶K])
             Γinert
             (rec _ (s≤s (≤-reflexive refl))))
-      Γ⊢#x∙M∈S[J] = k-sel-# Γ⊢#τ∈J Γ⊢!x∈[typM∶S[J]]
+      Γ⊢#x∙M∈S[J] = k-sel-# Γ⊢!x∈[M∶S[J]]
       Γ⊢#S[J]≤J = sing-sub-# Γ⊢#τ∈J
       Γ⊢#x∙M∈J = k-sub-# Γ⊢#x∙M∈S[J] Γ⊢#S[J]≤J
       Γ⊢#x∙M∈K = k-sub-# Γ⊢#x∙M∈J Γ⊢#J≤K

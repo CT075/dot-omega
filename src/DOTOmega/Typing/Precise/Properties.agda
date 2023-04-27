@@ -18,14 +18,6 @@ open import DOTOmega.Typing.Tight TypeL TermL
 open import DOTOmega.Typing.Tight.Properties TypeL TermL
 open import DOTOmega.Typing.Precise TypeL TermL
 
-record IsSingleton (Γ : Context) (K : Kind) : Set where
-  constructor S
-  field
-    τ : Type
-    J : Kind
-    Γ⊢#τ∈J : Γ ⊢#ty τ ∈ J
-    eq : K ≡ S[ τ ∈ J ]
-
 postulate
   inert-lookup-ty : ∀ {Γ x τ} →
     Γ inert-ctx →
@@ -96,10 +88,18 @@ precise-μ-is-recd Γinert (rec-and-!₂ Γ⊢!x∈μρ⟫S∧U)
 ... | Record (_ , labels-join {ℓs₂ = Uℓs} S-is-recd U-is-recd disj) =
   Record (Uℓs , U-is-recd)
 
+record IsSingleton (Γ : Context) (K : Kind) : Set where
+  constructor Sing
+  field
+    τ : Type
+    J : Kind
+    eq : K ≡ S[ τ ∈ J ]
+
 precise-recd-kind-is-singleton : ∀ {Γ x τ M K} →
   Γ inert-ctx →
   Γ ⊢!var x ∈ τ ⟫ [ typ M ∶ K ] →
   IsSingleton Γ K
 precise-recd-kind-is-singleton Γinert Γ⊢!x∈τ⟫[M∶K]
   with precise-recd-is-μ Γinert Γ⊢!x∈τ⟫[M∶K]
-... | (ρ , eq) rewrite eq = {! !}
+... | (ρ , eq) rewrite eq with precise-μ-is-recd Γinert Γ⊢!x∈τ⟫[M∶K]
+...   | Record (_ , labels-single (ty-is-recd {_} {τ} {J})) = Sing τ J refl

@@ -25,7 +25,7 @@ infix 4 _⊢#tm_∈_
 
 S[_∈_] : Type → Kind → Kind
 S[ τ ∈ A ∙∙ B ] = τ ∙∙ τ
-S[ f ∈ ℿ J K ] = ℿ J (S[ f ⊡ `(Bound zero) ∈ K ])
+S[ f ∈ ℿ J K ] = ℿ J (S[ wkType f ⊡ `(Bound zero) ∈ K ])
 
 mutual
   data _ctx-# : Context → Set where
@@ -74,7 +74,6 @@ mutual
       Γ ⊢# k kd →
       Γ ⊢#ty [ typ A ∶ k ] ∈ ✶
     k-sel-# : ∀{A x U τ k} →
-      Γ ⊢#ty τ ∈ k →
       Γ ⊢!var x ∈ U ⟫ [ typ A ∶ S[ τ ∈ k ] ] →
       Γ ⊢#ty x ∙ A ∈ S[ τ ∈ k ]
 

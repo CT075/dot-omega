@@ -24,13 +24,13 @@ postulate
     Γ ⊢#ty A ≤ B ∈ ✶ →
     Γ ⊢##val v ∈ B
 
+  ⊢##→⊢#-var : ∀{Γ x τ} → Γ ⊢##var x ∈ τ → Γ ⊢#tm ` x ∈ τ
+
 ⊢#→⊢##-var : ∀{Γ x τ} → Γ inert-ctx → Γ ⊢#tm ` x ∈ τ → Γ ⊢##var x ∈ τ
 ⊢#→⊢##-var Γinert (ty-var-# Γ[x]⊢>τ) = ty-precise-## (var-! Γ[x]⊢>τ)
 ⊢#→⊢##-var Γinert (ty-rec-intro-# Γ⊢x∈xτ) =
   ty-rec-i-## (⊢#→⊢##-var Γinert Γ⊢x∈xτ)
--- There's no reason this should be noticeably different from Rapoport et al.
--- However, Agda is really bad at having functions (e.g. "green slime") in type
--- indices, so we can't prove this by pattern-matching on [Γ⊢x∈τ] yet.
+-- TODO: this
 ⊢#→⊢##-var {Γ} {x} Γinert (ty-rec-elim-# {τ = τ} Γ⊢x∈τ) = foo
   where
     postulate
