@@ -8,7 +8,6 @@ module DOTOmega.Typing.GeneralToTight
 
 open import Data.Nat using (ℕ; suc; _⊔_; s≤s) renaming (_<_ to _<ℕ_)
 open import Data.Nat.Properties using (≤-reflexive; ≤-trans; m≤m⊔n; m≤n⊔m)
-open import Data.Nat.Induction.Extensions
 open import Data.Product
 open import Data.List hiding ([_])
 open import Relation.Binary.PropositionalEquality hiding (J)
@@ -16,6 +15,7 @@ open import Induction.WellFounded using (Acc; acc)
 
 open import Data.Context
 open import Data.Var
+open import Induction.Extensions
 
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing TypeL TermL

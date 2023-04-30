@@ -8,13 +8,17 @@ module DOTOmega.Syntax
     (TermL : DecSetoid lzero lzero)
   where
 
-open import Data.Nat using (ℕ; suc; zero)
+open import Data.Nat
+open import Data.Nat.Properties
 open import Data.List using (List; []; _∷_)
 open import Data.List.Relation.Unary.Any using (Any)
 open import Relation.Nullary.Negation using (¬_)
+open import Relation.Binary.PropositionalEquality
+open import Induction.WellFounded using (Acc)
 open import Function.Base using (id)
 
-open import Data.Var using (Var; Lift; Subst)
+open import Data.Var using (Var; Lift; Subst; openVar)
+open import Induction.Extensions
 
 TypeLabel = DecSetoid.Carrier TypeL
 TermLabel = DecSetoid.Carrier TermL
@@ -253,3 +257,56 @@ open Subst (record {lift = TermLift; var = id; subst = liftTerm})
   using ()
   renaming (bindT to plugTerm)
   public
+
+infix 19 _<kd_
+
+-- This measure is primarily used for the logical relation for type-level
+-- normalization, which doesn't need to recurse into the type expressions
+-- themselves. Because of that, we can just count [S ∙∙ U] as the base.
+kd-depth : Kind → ℕ
+kd-depth (S ∙∙ U) = 1
+kd-depth (ℿ J K) = suc (kd-depth J + kd-depth K)
+
+_<kd_ : Kind → Kind → Set
+J <kd K = kd-depth J < kd-depth K
+
+<kd-wf : ∀ K → Acc _<kd_ K
+<kd-wf = accMeasure kd-depth
+
+<kd-ℿ₁ : ∀ J K → J <kd ℿ J K
+<kd-ℿ₁ J K = s≤s (m≤m+n (kd-depth J) (kd-depth K))
+
+<kd-ℿ₂ : ∀ J K → K <kd ℿ J K
+<kd-ℿ₂ J K = s≤s (m≤n+m (kd-depth K) (kd-depth J))
+
+liftKind-preserves-size : ∀ (f : Var → Var) K →
+  kd-depth (liftKind f K) ≡ kd-depth K
+liftKind-preserves-size f (A ∙∙ B) = refl
+liftKind-preserves-size f (ℿ J K) = begin
+    kd-depth (liftKind f (ℿ J K))
+  ≡⟨ refl ⟩
+    kd-depth (ℿ (liftKind f J) (liftKind f K))
+  ≡⟨ refl ⟩
+    suc (kd-depth (liftKind f J) + kd-depth (liftKind f K))
+  ≡⟨ cong
+      (λ t → suc (t + kd-depth (liftKind f K)))
+      (liftKind-preserves-size f J)
+   ⟩
+    suc (kd-depth J + kd-depth (liftKind f K))
+  ≡⟨ cong
+      (λ t → suc (kd-depth J + t))
+      (liftKind-preserves-size f K)
+   ⟩
+    suc (kd-depth J + kd-depth K)
+  ≡⟨ refl ⟩
+    kd-depth (ℿ J K)
+  ∎
+  where
+    open ≡-Reasoning
+
+liftKind-preserves-<₁ : ∀ J K (f : Var → Var) →
+  J <kd K → liftKind f J <kd K
+liftKind-preserves-<₁ J K f J<K rewrite liftKind-preserves-size f J = J<K
+
+<kd-ℿ-open : ∀ x J K → openKind x K <kd ℿ J K
+<kd-ℿ-open x J K = liftKind-preserves-<₁ K (ℿ J K) (openVar x) (<kd-ℿ₂ J K)

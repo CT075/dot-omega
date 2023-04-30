@@ -1,4 +1,4 @@
-module Data.Nat.Induction.Extensions where
+module Induction.Extensions where
 
 open import Data.Nat using (ℕ; _<_; zero; suc; s≤s)
 open import Data.Nat.Properties using (n≮0; <-trans)
