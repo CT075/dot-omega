@@ -14,7 +14,7 @@ open import Data.List using (List; []; _∷_)
 open import Data.List.Relation.Unary.Any using (Any)
 open import Relation.Nullary.Negation using (¬_)
 open import Relation.Binary.PropositionalEquality
-open import Induction.WellFounded using (Acc)
+open import Induction.WellFounded
 open import Function.Base using (id)
 
 open import Data.Var using (Var; Lift; Subst; openVar)
