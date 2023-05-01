@@ -65,7 +65,7 @@ denot-step ValS Γ (ƛ J' A) (ℿ J K) (acc rec) =
       denot-step ValS Γ τ J (rec _ (inj₁ (<kd-ℿ₁ J K))) →
       denot-step EvalS (Γ & x ~ Kd S[ τ ∈ J ]) A (openKind x K)
         (rec _ (inj₁ (<kd-ℿ-open x J K))))
-denot-step ValS _ _ (ℿ J K) (acc rec) = Void
+denot-step ValS Γ A (ℿ J K) (acc rec) = Void
 denot-step EvalS Γ A K (acc rec) =
   Σ[ τ ∈ Type ](
     Γ ⊢#ty A == τ ∈ K ×
@@ -79,3 +79,35 @@ denot lr Γ τ K = denot-step lr Γ τ K (<kd×lr-wf (K , lr))
 
 ⟨_,_⟩∈'ℰ⟦_⟧ : Context → Type → Kind → Set
 ⟨ Γ , τ ⟩∈'ℰ⟦ K ⟧ = denot EvalS Γ τ K
+
+mutual
+  data ⟨_,_⟩∈⟦_⟧ : Context → Type → Kind → Set where
+    denot-intv : ∀{Γ τ S U} →
+      τ normal →
+      Γ ⊢#ty S ≤ τ ∈ ✶ →
+      Γ ⊢#ty τ ≤ U ∈ ✶ →
+      ⟨ Γ , τ ⟩∈⟦ S ∙∙ U ⟧
+    denot-abs : ∀{Γ} {J J' : Kind} {K : Kind} {A} →
+      Γ ⊢#kd J ≤ J' →
+      (∀ τ x →
+        Σ[ rec ∈ WfRec _<kd×lr_ (Acc _<kd×lr_) (ℿ J K , ValS) ](denot-step ValS Γ τ J (rec _ (inj₁ (<kd-ℿ₁ J K)))
+        → ⟨ Γ & x ~ Kd S[ τ ∈ J ] , A ⟩∈ℰ⟦ openKind x K ⟧)) →
+      ⟨ Γ , ƛ J' A ⟩∈⟦ ℿ J K ⟧
+
+  data ⟨_,_⟩∈ℰ⟦_⟧ : Context → Type → Kind → Set where
+    eval : ∀{Γ A τ K} → Γ ⊢#ty A == τ ∈ K → ⟨ Γ , τ ⟩∈⟦ K ⟧ → ⟨ Γ , A ⟩∈ℰ⟦ K ⟧
+
+mutual
+  denot-ind-rec-v : ∀{Γ τ K acc} → denot-step ValS Γ τ K acc → ⟨ Γ , τ ⟩∈⟦ K ⟧
+  denot-ind-rec-v {K = S ∙∙ U} {acc = acc _} (τ-normal , S≤τ , τ≤U) =
+    denot-intv τ-normal S≤τ τ≤U
+  denot-ind-rec-v {Γ} {ƛ J' A} {ℿ J K} {acc = acc rec} (J≤J' , f) = denot-abs J≤J' f'
+    where
+      f' : ∀ τ x →
+        Σ[ rec ∈ WfRec _<kd×lr_ _ (ℿ J K , ValS) ](denot-step ValS Γ τ J (rec _ (inj₁ (<kd-ℿ₁ J K)))
+        → ⟨ Γ & x ~ Kd S[ τ ∈ J ] , A ⟩∈ℰ⟦ openKind x K ⟧)
+      f' τ x = (rec , λ ⟨Γ,τ⟩∈'⟦J⟧ → denot-ind-rec-e (f τ x ⟨Γ,τ⟩∈'⟦J⟧))
+
+  denot-ind-rec-e : ∀{Γ A K acc} → denot-step EvalS Γ A K acc → ⟨ Γ , A ⟩∈ℰ⟦ K ⟧
+  denot-ind-rec-e {acc = acc _} (τ , A==τ , ⟨Γ,τ⟩∈'⟦K⟧) =
+    eval {τ = τ} A==τ (denot-ind-rec-v ⟨Γ,τ⟩∈'⟦K⟧)
