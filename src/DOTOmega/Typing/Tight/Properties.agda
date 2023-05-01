@@ -95,3 +95,5 @@ postulate
   sk-refl-# : ∀{Γ} K → Γ ⊢#kd K ≤ K
 
   types-wf-# : ∀{Γ t τ} → Γ ⊢#tm t ∈ τ → Σ[ K ∈ Kind ] (Γ ⊢#ty τ ∈ K)
+
+  ty-refl : ∀{Γ A K} → Γ ⊢#ty A ∈ K → Γ ⊢#ty A == A ∈ K
