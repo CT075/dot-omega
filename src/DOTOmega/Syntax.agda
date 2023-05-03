@@ -10,6 +10,7 @@ module DOTOmega.Syntax
 
 open import Data.Nat
 open import Data.Nat.Properties
+open import Data.Product
 open import Data.List using (List; []; _∷_)
 open import Data.List.Relation.Unary.Any using (Any)
 open import Relation.Nullary.Negation using (¬_)
@@ -258,48 +259,85 @@ open Subst (record {lift = TermLift; var = id; subst = liftTerm})
   renaming (bindT to plugTerm)
   public
 
+data KindShape : Set where
+  Interval : KindShape
+  Pi : KindShape → KindShape → KindShape
+
+kd-shape : Kind → KindShape
+kd-shape (S ∙∙ U) = Interval
+kd-shape (ℿ J K) = Pi (kd-shape J) (kd-shape K)
+
+liftKind-preserves-shape : ∀ (f : Var → Var) K →
+  kd-shape (liftKind f K) ≡ kd-shape K
+liftKind-preserves-shape f (S ∙∙ U) = refl
+liftKind-preserves-shape f (ℿ J K) = begin
+    kd-shape (liftKind f (ℿ J K))
+  ≡⟨ refl ⟩
+    kd-shape (ℿ (liftKind f J) (liftKind f K))
+  ≡⟨ refl ⟩
+    Pi (kd-shape (liftKind f J)) (kd-shape (liftKind f K))
+  ≡⟨ cong
+      (λ t → Pi t (kd-shape (liftKind f K)))
+      (liftKind-preserves-shape f J) ⟩
+    Pi (kd-shape J) (kd-shape (liftKind f K))
+  ≡⟨ cong (Pi (kd-shape J)) (liftKind-preserves-shape f K) ⟩
+    Pi (kd-shape J) (kd-shape K)
+  ≡⟨ refl ⟩
+    kd-shape (ℿ J K)
+  ∎
+  where
+    open ≡-Reasoning
+
+unwrap-Pi-shape : ∀ {J K sJ sK} → kd-shape (ℿ J K) ≡ Pi sJ sK →
+  kd-shape J ≡ sJ × kd-shape K ≡ sK
+unwrap-Pi-shape {J} {K} {sJ} {sK} eq = split sJ sK (kd-shape J) (kd-shape K) eq
+  where
+    split : ∀ sJ sK sJ' sK' → Pi sJ' sK' ≡ Pi sJ sK → sJ' ≡ sJ × sK' ≡ sK
+    split sJ sK .sJ .sK refl = refl , refl
+
 infix 19 _<kd_
 
+-- TODO: is this still true?
 -- This measure is primarily used for the logical relation for type-level
 -- normalization, which doesn't need to recurse into the type expressions
 -- themselves. Because of that, we can just count [S ∙∙ U] as the base.
-kd-depth : Kind → ℕ
-kd-depth (S ∙∙ U) = 1
-kd-depth (ℿ J K) = suc (kd-depth J + kd-depth K)
+kd-size : Kind → ℕ
+kd-size (S ∙∙ U) = 1
+kd-size (ℿ J K) = suc (kd-size J + kd-size K)
 
 _<kd_ : Kind → Kind → Set
-J <kd K = kd-depth J < kd-depth K
+J <kd K = kd-size J < kd-size K
 
 <kd-wf : ∀ K → Acc _<kd_ K
-<kd-wf = accMeasure kd-depth
+<kd-wf = accMeasure kd-size
 
 <kd-ℿ₁ : ∀ J K → J <kd ℿ J K
-<kd-ℿ₁ J K = s≤s (m≤m+n (kd-depth J) (kd-depth K))
+<kd-ℿ₁ J K = s≤s (m≤m+n (kd-size J) (kd-size K))
 
 <kd-ℿ₂ : ∀ J K → K <kd ℿ J K
-<kd-ℿ₂ J K = s≤s (m≤n+m (kd-depth K) (kd-depth J))
+<kd-ℿ₂ J K = s≤s (m≤n+m (kd-size K) (kd-size J))
 
 liftKind-preserves-size : ∀ (f : Var → Var) K →
-  kd-depth (liftKind f K) ≡ kd-depth K
+  kd-size (liftKind f K) ≡ kd-size K
 liftKind-preserves-size f (A ∙∙ B) = refl
 liftKind-preserves-size f (ℿ J K) = begin
-    kd-depth (liftKind f (ℿ J K))
+    kd-size (liftKind f (ℿ J K))
   ≡⟨ refl ⟩
-    kd-depth (ℿ (liftKind f J) (liftKind f K))
+    kd-size (ℿ (liftKind f J) (liftKind f K))
   ≡⟨ refl ⟩
-    suc (kd-depth (liftKind f J) + kd-depth (liftKind f K))
+    suc (kd-size (liftKind f J) + kd-size (liftKind f K))
   ≡⟨ cong
-      (λ t → suc (t + kd-depth (liftKind f K)))
+      (λ t → suc (t + kd-size (liftKind f K)))
       (liftKind-preserves-size f J)
    ⟩
-    suc (kd-depth J + kd-depth (liftKind f K))
+    suc (kd-size J + kd-size (liftKind f K))
   ≡⟨ cong
-      (λ t → suc (kd-depth J + t))
+      (λ t → suc (kd-size J + t))
       (liftKind-preserves-size f K)
    ⟩
-    suc (kd-depth J + kd-depth K)
+    suc (kd-size J + kd-size K)
   ≡⟨ refl ⟩
-    kd-depth (ℿ J K)
+    kd-size (ℿ J K)
   ∎
   where
     open ≡-Reasoning
