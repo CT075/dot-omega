@@ -9,7 +9,7 @@ module DOTOmega.Syntax
   where
 
 open import Data.Nat
-open import Data.Nat.Properties
+open import Data.Fin
 open import Data.Product
 open import Data.List using (List; []; _∷_)
 open import Data.List.Relation.Unary.Any using (Any)
@@ -18,7 +18,6 @@ open import Relation.Binary.PropositionalEquality
 open import Induction.WellFounded
 open import Function.Base using (id)
 
-open import Data.Var using (Var; Lift; Subst; openVar)
 open import Induction.Extensions
 
 TypeLabel = DecSetoid.Carrier TypeL
@@ -33,44 +32,44 @@ infix 21 _∧_
 -- Core syntax
 
 mutual
-  data Kind : Set where
-    _∙∙_ : Type → Type → Kind              -- interval kinds
-    ℿ : Kind → Kind → Kind                 -- type-level function kinds
+  data Kind (n : ℕ) : Set where
+    _∙∙_ : Type n → Type n → Kind n     -- interval kinds
+    ℿ : Kind n → Kind (suc n) → Kind n  -- type-level function kinds
 
-  data Type : Set where
-    ⊤ : Type                               -- top
-    ⊥ : Type                               -- bottom
-    [_] : Decl → Type                      -- record
-    _∧_ : Type → Type → Type               -- intersection
-    _∙_ : Var → TypeLabel → Type           -- type selection
-    μ : Type → Type                        -- recursive types
-    ℿ : Type → Type → Type                 -- dependent function
-    ƛ : Kind → Type → Type                 -- type lambda
-    ` : Var → Type                         -- type variable
-    _⊡_ : Type → Type → Type               -- application
+  data Type (n : ℕ) : Set where
+    ⊤ : Type n                          -- top
+    ⊥ : Type n                          -- bottom
+    [_] : Decl n → Type n               -- record
+    _∧_ : Type n → Type n → Type n      -- intersection
+    _∙_ : Fin n → TypeLabel → Type n    -- type selection
+    μ : Type (suc n) → Type n           -- recursive types
+    ℿ : Type n → Type (suc n) → Type n  -- dependent function
+    ƛ : Kind n → Type (suc n) → Type n  -- type lambda
+    ` : Fin n → Type n                  -- type variable
+    _⊡_ : Type n → Type n → Type n      -- application
 
-  data Decl : Set where
-    typ_∶_ : TypeLabel → Kind → Decl
-    val_∶_ : TermLabel → Type → Decl
+  data Decl (n : ℕ) : Set where
+    typ_∶_ : TypeLabel → Kind n → Decl n
+    val_∶_ : TermLabel → Type n → Decl n
 
 pattern ✶ = ⊥ ∙∙ ⊤
 
 mutual
-  data Term : Set where
-    ` : Var → Term                         -- variables
-    V : Val → Term                         -- values
-    _∙_ : Var → TermLabel → Term           -- field selection
-    _⊡_ : Var → Var → Term                 -- application
-    let'_in'_ : Term → Term → Term         -- let-binding
-    lettype_in'_ : Type → Term → Term      -- type binding
+  data Term (n : ℕ) : Set where
+    ` : Fin n → Term n                            -- variables
+    V : Val n → Term n                            -- values
+    _∙_ : Fin n → TermLabel → Term n              -- field selection
+    _⊡_ : Fin n → Fin n → Term n                  -- application
+    let'_in'_ : Term n → Term (suc n) → Term n    -- let-binding
+    lettype_in'_ : Type n → Term (suc n) → Term n -- type binding
 
-  data Val : Set where
-    new : Type → List Defn → Val           -- new object definitions
-    ƛ : Type → Term → Val                  -- lambdas
+  data Val (n : ℕ) : Set where
+    new : Type (suc n) → List (Defn (suc n)) → Val n -- new object definitions
+    ƛ : Type n → Term (suc n) → Val n                -- lambdas
 
-  data Defn : Set where
-    typ_='_ : TypeLabel → Type → Defn
-    val_='_ : TermLabel → Term → Defn
+  data Defn (n : ℕ) : Set where
+    typ_='_ : TypeLabel → Type n → Defn n
+    val_='_ : TermLabel → Term n → Defn n
 
 -- Utility functions
 
@@ -78,78 +77,61 @@ data Label : Set where
   TyL : TypeLabel → Label
   TmL : TermLabel → Label
 
-data defnMatchesType : TypeLabel → Defn → Set where
-  dmty-lbl : ∀{A A' τ} → A ≈Ty A' → defnMatchesType A' (typ A =' τ)
+data defnMatchesType {n} : TypeLabel → Defn n → Set where
+  dmty-lbl : ∀{A A' τ} → A ≈Ty A' → defnMatchesType {n} A' (typ A =' τ)
 
-data defnMatchesTerm : TermLabel → Defn → Set where
-  dmtm-lbl : ∀{ℓ ℓ' e} → ℓ ≈Tm ℓ' → defnMatchesTerm ℓ' (val ℓ =' e)
+data defnMatchesTerm {n} : TermLabel → Defn n → Set where
+  dmtm-lbl : ∀{ℓ ℓ' e} → ℓ ≈Tm ℓ' → defnMatchesTerm {n} ℓ' (val ℓ =' e)
 
-_∈_ : Defn → List Defn → Set
+_∈_ : ∀{n} → Defn n → List (Defn n) → Set
 (typ A =' _) ∈ ds = Any (defnMatchesType A) ds
 (val ℓ =' _) ∈ ds = Any (defnMatchesTerm ℓ) ds
 
-_∉_ : Defn → List Defn → Set
+_∉_ : ∀{n} → Defn n → List (Defn n) → Set
 d ∉ ds = ¬ (d ∈ ds)
 
--- Locally-nameless operations
-
 mutual
-  liftKind : (Var → Var) → Kind → Kind
-  liftKind f (τ₁ ∙∙ τ₂) = liftType f τ₁ ∙∙ liftType f τ₂
-  liftKind f (ℿ J K) = ℿ (liftKind f J) (liftKind f K)
+  weakenKind : ∀{n} → Kind n → Kind (suc n)
+  weakenKind (τ₁ ∙∙ τ₂) = weakenType τ₁ ∙∙ weakenType τ₂
+  weakenKind (ℿ J K) = ℿ (weakenKind J) (weakenKind K)
 
-  liftType : (Var → Var) → Type → Type
-  liftType f ⊤ = ⊤
-  liftType f ⊥ = ⊥
-  liftType f [ decl ] = [ liftDecl f decl ]
-  liftType f (τ₁ ∧ τ₂) = liftType f τ₁ ∧ liftType f τ₂
-  liftType f (x ∙ A) = f x ∙ A
-  liftType f (μ τ) = μ (liftType f τ)
-  liftType f (ℿ τ ρ) = ℿ (liftType f τ) (liftType f ρ)
-  liftType f (ƛ k τ) = ƛ (liftKind f k) (liftType f τ)
-  liftType f (` x) = ` (f x)
-  liftType f (g ⊡ τ) = liftType f g ⊡ liftType f τ
+  weakenType : ∀{n} → Type n → Type (suc n)
+  weakenType ⊤ = ⊤
+  weakenType ⊥ = ⊥
+  weakenType [ decl ] = [ weakenDecl decl ]
+  weakenType (τ₁ ∧ τ₂) = weakenType τ₁ ∧ weakenType τ₂
+  weakenType (x ∙ A) = suc x ∙ A
+  weakenType (μ τ) = μ (weakenType τ)
+  weakenType (ℿ τ ρ) = ℿ (weakenType τ) (weakenType ρ)
+  weakenType (ƛ k τ) = ƛ (weakenKind k) (weakenType τ)
+  weakenType (` x) = ` (suc x)
+  weakenType (g ⊡ τ) = weakenType g ⊡ weakenType τ
 
-  liftDecl : (Var → Var) → Decl → Decl
-  liftDecl f (typ A ∶ k) = typ A ∶ liftKind f k
-  liftDecl f (val ℓ ∶ τ) = val ℓ ∶ liftType f τ
+  weakenDecl : ∀{n} → Decl n → Decl (suc n)
+  weakenDecl (typ A ∶ k) = typ A ∶ weakenKind k
+  weakenDecl (val ℓ ∶ τ) = val ℓ ∶ weakenType τ
 
-  liftTerm : (Var → Var) → Term → Term
-  liftTerm f (` x) = ` (f x)
-  liftTerm f (V vl) = V (liftVal f vl)
-  liftTerm f (a ∙ b) = f a ∙ b
-  liftTerm f (a ⊡ b) = f a ⊡ f b
-  liftTerm f (let' t1 in' t2) = let' (liftTerm f t1) in' (liftTerm f t2)
-  liftTerm f (lettype τ in' t) = lettype (liftType f τ) in' (liftTerm f t)
+  weakenTerm : ∀{n} → Term n → Term (suc n)
+  weakenTerm (` x) = ` (suc x)
+  weakenTerm (V vl) = V (weakenVal vl)
+  weakenTerm (a ∙ b) = suc a ∙ b
+  weakenTerm (a ⊡ b) = suc a ⊡ suc b
+  weakenTerm (let' t1 in' t2) = let' (weakenTerm t1) in' (weakenTerm t2)
+  weakenTerm (lettype τ in' t) = lettype (weakenType τ) in' (weakenTerm t)
 
-  liftVal : (Var → Var) → Val → Val
-  liftVal f (ƛ τ e) = ƛ τ (liftTerm f e)
-  liftVal f (new τ defns) = new (liftType f τ) (mapf defns)
+  weakenVal : ∀{n} → Val n → Val (suc n)
+  weakenVal (ƛ τ e) = ƛ (weakenType τ) (weakenTerm e)
+  weakenVal (new τ defns) = new (weakenType τ) (mapf defns)
     where
-      mapf : List Defn → List Defn
+      mapf : ∀{n} → List (Defn n) → List (Defn (suc n))
       mapf [] = []
-      mapf (defn ∷ defns) = liftDefn f defn ∷ mapf defns
+      mapf (defn ∷ defns) = weakenDefn defn ∷ mapf defns
 
-  liftDefn : (Var → Var) → Defn → Defn
-  liftDefn f (typ A =' τ) = typ A =' (liftType f τ)
-  liftDefn f (val ℓ =' e) = val ℓ =' (liftTerm f e)
+  weakenDefn : ∀{n} → Defn n → Defn (suc n)
+  weakenDefn (typ A =' τ) = typ A =' (weakenType τ)
+  weakenDefn (val ℓ =' e) = val ℓ =' (weakenTerm e)
 
-instance
-  KindLift : Lift Kind
-  KindLift = record {lift = liftKind}
-
-  TermLift : Lift Term
-  TermLift = record {lift = liftTerm}
-
-  ValLift : Lift Val
-  ValLift = record {lift = liftVal}
-
-  TypeLift : Lift Type
-  TypeLift = record {lift = liftType}
-
-  DefnLift : Lift Defn
-  DefnLift = record {lift = liftDefn}
-
+{-
 mutual
   _/Kind_ : (Var → Type) → Kind → Kind
   _/Kind_ f (A ∙∙ B) = _/Type_ f A ∙∙ _/Type_ f B
@@ -258,7 +240,9 @@ open Subst (record {lift = TermLift; var = id; subst = liftTerm})
   using ()
   renaming (bindT to plugTerm)
   public
+-}
 
+{-
 data KindShape : Set where
   Interval : KindShape
   Pi : KindShape → KindShape → KindShape
@@ -348,3 +332,4 @@ liftKind-preserves-<₁ J K f J<K rewrite liftKind-preserves-size f J = J<K
 
 <kd-ℿ-open : ∀ x J K → openKind x K <kd ℿ J K
 <kd-ℿ-open x J K = liftKind-preserves-<₁ K (ℿ J K) (openVar x) (<kd-ℿ₂ J K)
+-}

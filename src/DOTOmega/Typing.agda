@@ -6,27 +6,27 @@ module DOTOmega.Typing
     (TermL : DecSetoid lzero lzero)
   where
 
+open import Data.Nat
 open import Data.List using (List; []; _∷_; map)
-
-open import Data.Var
 
 open import DOTOmega.Syntax TypeL TermL
 
 open import Data.Context
 
-data VarFact : Set where
-  Kd : Kind → VarFact              -- Type variable kind assignment
-  Ty : Type → VarFact              -- Term variable type assignment
+data VarFact (n : ℕ) : Set where
+  Kd : Kind n → VarFact n              -- Type variable kind assignment
+  Ty : Type n → VarFact n              -- Term variable type assignment
 
-liftVarFact : (Var → Var) → VarFact → VarFact
-liftVarFact f (Kd k) = Kd (liftKind f k)
-liftVarFact f (Ty τ) = Ty (liftType f τ)
+weakenVarFact : ∀{n} → VarFact n → VarFact (suc n)
+weakenVarFact (Kd k) = Kd (weakenKind k)
+weakenVarFact (Ty τ) = Ty (weakenType τ)
 
 instance
-  VarFactLift : Lift VarFact
-  VarFactLift = record {lift = liftVarFact}
+  VarFactWeaken : Weaken VarFact
+  VarFactWeaken = record {weaken = weakenVarFact}
 
-Context = Ctx VarFact
+Context : ℕ → Set
+Context n = Ctx (VarFact n)
 
 infix 4 _ctx
 infix 4 _⊢_kd
@@ -40,32 +40,32 @@ infix 4 _⊢defn_∈_ _⊢defns_∈_
 -- Regular typing
 
 mutual
-  data _ctx : Context → Set where
+  data _ctx {n} : Context n → Set where
     c-empty : [] ctx
-    c-cons-kd : ∀{Γ x k} → Γ ctx → Γ ⊢ k kd → Γ & x ~ Kd k ctx
-    c-cons-ty : ∀{Γ x τ k} → Γ ctx → Γ ⊢ty τ ∈ k → Γ & x ~ Ty τ ctx
+    c-cons-kd : ∀{Γ x k} → Γ ctx → Γ ⊢ k kd → Γ & Kd k ctx
+    c-cons-ty : ∀{Γ x τ k} → Γ ctx → Γ ⊢ty τ ∈ k → Γ & Ty τ ctx
 
-  data _⊢_kd (Γ : Context) : Kind → Set where
+  data _⊢_kd {n} (Γ : Context n) : Kind n → Set where
     wf-intv : ∀{A B} → Γ ⊢ty A ∈ ✶ → Γ ⊢ty B ∈ ✶ → Γ ⊢ A ∙∙ B kd
     wf-darr : ∀{x J K} →
       Γ ⊢ J kd →
-      Γ & x ~ Kd J ⊢ (openKind x K) kd →
+      Γ & Kd J ⊢ K kd →
       Γ ⊢ ℿ J K kd
 
-  data _⊢ty_∈_ (Γ : Context) : Type → Kind → Set where
-    k-var : ∀{name k} → Γ ctx → Γ [ name ]⊢> Kd k → Γ ⊢ty `(Free name) ∈ k
+  data _⊢ty_∈_ {n} (Γ : Context n) : Type n → Kind n → Set where
+    k-var : ∀{x k} → Γ ctx → Γ [ x ]⊢> Kd k → Γ ⊢ty ` x ∈ k
     k-top : Γ ⊢ty ⊤ ∈ ✶
     k-bot : Γ ⊢ty ⊥ ∈ ✶
     k-sing : ∀{A B C} →
       Γ ⊢ty A ∈ B ∙∙ C →
       Γ ⊢ty A ∈ A ∙∙ A
-    k-arr : ∀{x A B} →
+    k-arr : ∀{A B} →
       Γ ⊢ty A ∈ ✶ →
-      Γ & x ~ Ty A ⊢ty openType x B ∈ ✶ →
+      Γ & Ty A ⊢ty B ∈ ✶ →
       Γ ⊢ty ℿ A B ∈ ✶
-    k-abs : ∀{x J K A} →
+    k-abs : ∀{J K A} →
       Γ ⊢ J kd →
-      Γ & x ~ Kd J ⊢ty openType x A ∈ openKind x K →
+      Γ & Kd J ⊢ty A ∈ K →
       Γ ⊢ty ƛ J A ∈ ℿ J K
     k-app : ∀{J K f τ} →
       Γ ⊢ty f ∈ ℿ J K →
