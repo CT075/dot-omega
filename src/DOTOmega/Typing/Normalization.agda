@@ -38,57 +38,33 @@ data _normal : Type → Set where
   typdecl-norm : ∀{K M} → [ typ M ∶ K ] normal
   valdecl-norm : ∀{ℓ A} → A normal → [ val ℓ ∶ A ] normal
 
-denot : Context → Type → (K : Kind) → (s : KindShape) → (kd-shape K ≡ s) → Set
-denot Γ τ (S ∙∙ U) _ _ = τ normal × Γ ⊢#ty S ≤ τ ∈ ✶ × Γ ⊢#ty τ ≤ U ∈ ✶
-denot Γ (ƛ J' A) (ℿ J K) (Pi sJ sK) refl =
+denot : Context → Type → (K : Kind) → (s : KindShape) → Set
+denot Γ τ (S ∙∙ U) _ = τ normal × Γ ⊢#ty S ≤ τ ∈ ✶ × Γ ⊢#ty τ ≤ U ∈ ✶
+denot Γ (ƛ J' A) (ℿ J K) (Pi sJ sK) =
     Γ ⊢#kd J ≤ J' ×
     (∀ τ x →
-      denot Γ τ J sJ refl →
+      denot Γ τ J sJ →
       Σ[ α ∈ Type ]
       ((Γ & x ~ Kd S[ τ ∈ J ]) ⊢#ty A == α ∈ openKind x K ×
-        denot (Γ & x ~ Kd S[ τ ∈ J ]) α (openKind x K) sK (shape-open-K≡sK x)))
-  where
-    shape-open-K≡sK : ∀ x → kd-shape (openKind x K) ≡ sK
-    shape-open-K≡sK x rewrite liftKind-preserves-shape (openVar x) K = refl
-denot Γ _ (ℿ J K) _ _ = Void
+        denot (Γ & x ~ Kd S[ τ ∈ J ]) α (openKind x K) sK))
+denot Γ _ (ℿ J K) _ = Void
 
 ⟨_,_⟩∈⟦_⟧ : Context → Type → Kind → Set
-⟨ Γ , τ ⟩∈⟦ K ⟧ = denot Γ τ K (kd-shape K) refl
+⟨ Γ , τ ⟩∈⟦ K ⟧ = denot Γ τ K (kd-shape K)
 
 ⟨_,_⟩∈ℰ⟦_⟧ : Context → Type → Kind → Set
 ⟨ Γ , A ⟩∈ℰ⟦ K ⟧ =
-  Σ[ τ ∈ Type ](Γ ⊢#ty A == τ ∈ K × denot Γ τ K (kd-shape K) refl)
+  Σ[ τ ∈ Type ](Γ ⊢#ty A == τ ∈ K × denot Γ τ K (kd-shape K))
 
--- TODO: move all this garbage somewhere where it doesn't clutter this file
--- utility functions, because Agda's termination measures aren't as good as
--- Coq's, so we have to do some extra bookkeeping
+prop-open : ∀ {Γ τ} x K →
+  denot Γ τ (openKind x K) (kd-shape K) ≡
+  denot Γ τ (openKind x K) (kd-shape (openKind x K))
+prop-open x K rewrite liftKind-preserves-shape (openVar x) K = refl
 
-denot-rec-invariant : ∀ Γ τ K s eq₁ eq₂ →
-  denot Γ τ K s eq₁ ≡ denot Γ τ K s eq₂
-denot-rec-invariant Γ τ K s refl refl = refl
-
-conv-denot-vₗ : ∀ {Γ τ K s eq} → denot Γ τ K s eq → ⟨ Γ , τ ⟩∈⟦ K ⟧
-conv-denot-vₗ {Γ} {τ} {K} {s} {refl} p
-  rewrite denot-rec-invariant Γ τ K s refl refl = p
-
-conv-denot-vᵣ : ∀ {Γ τ K s eq} → ⟨ Γ , τ ⟩∈⟦ K ⟧ → denot Γ τ K s eq
-conv-denot-vᵣ {Γ} {τ} {K} {s} {refl} p
-  rewrite denot-rec-invariant Γ τ K s refl refl = p
-
-prop-open : ∀ {Γ τ x K eq} →
-  denot Γ τ (openKind x K) (kd-shape K) eq ≡
-  denot Γ τ (openKind x K) (kd-shape (openKind x K)) refl
-prop-open {Γ} {τ} {x} {S ∙∙ U} {refl} = refl
-prop-open {Γ} {ƛ J' A} {x} {ℿ J K} {eq} = {!!}
-prop-open {τ = ⊤} {K = ℿ J K} = refl
-prop-open {τ = ⊥} {K = ℿ J K} = refl
-prop-open {τ = [ d ]} {K = ℿ J K} = refl
-prop-open {τ = S ∧ U} {K = ℿ J K} = refl
-prop-open {τ = x ∙ M} {K = ℿ J K} = refl
-prop-open {τ = ` x} {K = ℿ J K} = refl
-prop-open {τ = μ τ} {K = ℿ J K} = refl
-prop-open {τ = f ⊡ x} {K = ℿ J K} = refl
-prop-open {τ = ℿ τ ρ} {K = ℿ J K} = refl
+conv-open : ∀ {Γ τ} x K →
+  denot Γ τ (openKind x K) (kd-shape K) →
+  denot Γ τ (openKind x K) (kd-shape (openKind x K))
+conv-open {Γ} {τ} x K p rewrite prop-open {Γ} {τ} x K = p
 
 mutual
   data ⟨_,_⟩∈'⟦_⟧ : Context → Type → Kind → Set where
@@ -116,12 +92,16 @@ mutual
       f' : ∀ τ x →
         ⟨ Γ , τ ⟩∈⟦ J ⟧ →
         ⟨ Γ & x ~ Kd S[ τ ∈ J ] , A ⟩∈'ℰ⟦ openKind x K ⟧
-      f' τ x ⟨Γ,τ⟩∈⟦J⟧ = eval α A==α {!!}
+      f' τ x ⟨Γ,τ⟩∈⟦J⟧ = foo
         where
           t = f τ x ⟨Γ,τ⟩∈⟦J⟧
           α = proj₁ t
           A==α = proj₁ (proj₂ t)
+
+          ⟨Γx,α⟩∈⟦xK⟧ : denot _ α (openKind x K) (kd-shape K)
           ⟨Γx,α⟩∈⟦xK⟧ = proj₂ (proj₂ t)
+
+          foo = denot-rec-ind-e (α , A==α , conv-open x K ⟨Γx,α⟩∈⟦xK⟧)
 
   denot-rec-ind-e : ∀ {Γ A K} → ⟨ Γ , A ⟩∈ℰ⟦ K ⟧ → ⟨ Γ , A ⟩∈'ℰ⟦ K ⟧
   denot-rec-ind-e (τ , A==τ , ⟨Γ,τ⟩∈⟦K⟧) = eval τ A==τ (denot-rec-ind-v ⟨Γ,τ⟩∈⟦K⟧)
