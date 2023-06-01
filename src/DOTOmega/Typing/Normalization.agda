@@ -75,6 +75,22 @@ denot Γ _ (ℿ J K) _ = Void
 ⟨_,_⟩∈'⟦_⟧ : Context → Type → Kind → Set
 ⟨ Γ , A ⟩∈'⟦ K ⟧ = denot Γ A K (kd-shape K)
 
+denot-measure-inv : ∀{Γ A x K} →
+  denot Γ A (openKind x K) (kd-shape K) ≡
+  denot Γ A (openKind x K) (kd-shape (openKind x K))
+denot-measure-inv {Γ} {A} {x} {K} =
+  cong (denot Γ A (openKind x K)) (sym (liftKind-preserves-shape (openVar x) K))
+
+denot-measure-open : ∀{Γ A x K} →
+  denot Γ A (openKind x K) (kd-shape K) →
+  denot Γ A (openKind x K) (kd-shape (openKind x K))
+denot-measure-open {Γ} {A} {x} {K} p rewrite sym (denot-measure-inv {Γ} {A} {x} {K}) = p
+
+denot-measure-close : ∀{Γ A x K} →
+  denot Γ A (openKind x K) (kd-shape (openKind x K)) →
+  denot Γ A (openKind x K) (kd-shape K)
+denot-measure-close {Γ} {A} {x} {K} p rewrite (denot-measure-inv {Γ} {A} {x} {K}) = p
+
 mutual
   data ⟨_,_⟩∈⟦_⟧ : Context → Type → Kind → Set where
     denot-intv : ∀{Γ τ S U} →
@@ -93,3 +109,33 @@ mutual
       ⟨ Γ , τ ⟩∈⟦ K ⟧ →
       ⟨ Γ , A ⟩∈ℰ⟦ K ⟧
 
+-- whyyyy does this have to be so _complicated_
+denot-rec-ind-impl : ∀{Γ τ K} →
+  (sK : KindShape) →
+  (kd-shape K ≡ sK) →
+  denot Γ τ K sK → ⟨ Γ , τ ⟩∈⟦ K ⟧
+denot-rec-ind-impl {K = S ∙∙ U} _ _ (τ-whnf , S≤τ , τ≤U) = denot-intv τ-whnf S≤τ τ≤U
+denot-rec-ind-impl {Γ} {ƛ J' A} {ℿ J K} (Pi sJ sK) eq (J≤J' , body-normalizes) =
+  denot-pi J≤J' (body-normalizes' (proj₁ (unwrap-Pi-shape eq)))
+  where
+    body-normalizes' : kd-shape J ≡ sJ →
+      ∀ τ x →
+      ⟨ Γ , τ ⟩∈'⟦ J ⟧ →
+      Γ & x ~ Kd S[ τ ∈ J ] ⊢#ty openType x A ∈ openKind x K →
+      ⟨ Γ & x ~ Kd S[ τ ∈ J ] , A ⟩∈ℰ⟦ openKind x K ⟧
+    body-normalizes' refl τ x ⟨Γ,τ⟩∈'⟦J⟧ Γx⊢#xA∈xK =
+      let (α , Γx⊢#A==α , denot-Γx-α-xK-sK) = body-normalizes τ x ⟨Γ,τ⟩∈'⟦J⟧ Γx⊢#xA∈xK
+       in
+      denot-eval α Γx⊢#A==α (denot-rec-ind-impl sK shape-xK≡sK denot-Γx-α-xK-sK)
+      where
+        shape-xK≡shape-K : kd-shape (openKind x K) ≡ kd-shape K
+        shape-xK≡shape-K = liftKind-preserves-shape (openVar x) K
+
+        shape-K≡sK : kd-shape K ≡ sK
+        shape-K≡sK = proj₂ (unwrap-Pi-shape eq)
+
+        shape-xK≡sK : kd-shape (openKind x K) ≡ sK
+        shape-xK≡sK = trans shape-xK≡shape-K shape-K≡sK
+
+denot-rec-ind : ∀{Γ τ K} → ⟨ Γ , τ ⟩∈'⟦ K ⟧ → ⟨ Γ , τ ⟩∈⟦ K ⟧
+denot-rec-ind {K = K} = denot-rec-ind-impl (kd-shape K) refl
