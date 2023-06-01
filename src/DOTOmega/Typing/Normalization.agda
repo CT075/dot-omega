@@ -139,3 +139,25 @@ denot-rec-ind-impl {Γ} {ƛ J' A} {ℿ J K} (Pi sJ sK) eq (J≤J' , body-normali
 
 denot-rec-ind : ∀{Γ τ K} → ⟨ Γ , τ ⟩∈'⟦ K ⟧ → ⟨ Γ , τ ⟩∈⟦ K ⟧
 denot-rec-ind {K = K} = denot-rec-ind-impl (kd-shape K) refl
+
+weak-head-normalization : ∀ {Γ A K} →
+  Γ store →
+  Γ ⊢#ty A ∈ K →
+  ⟨ Γ , A ⟩∈ℰ⟦ K ⟧
+weak-head-normalization Γ-store (k-var-# Γ-ctx Γ[x]⊢>K) = {! !}
+weak-head-normalization Γ-store k-top-# =
+  denot-eval ⊤ (==-refl-# k-top-#)
+    (denot-intv ⊤-whnf (st-top-# k-bot-#) (st-refl-# k-top-#))
+weak-head-normalization Γ-store k-bot-# =
+  denot-eval ⊥ (==-refl-# k-bot-#)
+    (denot-intv ⊥-whnf (st-refl-# k-bot-#) (st-top-# k-bot-#))
+weak-head-normalization Γ-store (k-sing-# Γ⊢#A∈S∙∙U) = {! !}
+weak-head-normalization Γ-store (k-arr-# Γ⊢#A∈✶ Γx⊢#xB∈✶) = {! !}
+weak-head-normalization Γ-store (k-abs-# x x₁) = {! !}
+weak-head-normalization Γ-store (k-app-# Γ⊢#A∈K Γ⊢#A∈K₁) = {! !}
+weak-head-normalization Γ-store (k-intersect-# Γ⊢#A∈K Γ⊢#A∈K₁) = {! !}
+weak-head-normalization Γ-store (k-sub-# Γ⊢#A∈K x) = {! !}
+weak-head-normalization Γ-store (k-field-# Γ⊢#A∈K) = {! !}
+weak-head-normalization Γ-store (k-typ-# x) = {! !}
+weak-head-normalization Γ-store (k-sel-# x) = {! !}
+weak-head-normalization Γ-store (k-rec-# x) = {! !}

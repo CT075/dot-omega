@@ -170,6 +170,9 @@ st-β-# Γ⊢#B∈J Γx⊢#A∈K = st-antisym-# ƛJA⊡B≤B[x/A] B[x/A]≤ƛJA�
     ƛJA⊡B≤B[x/A] = st-β₁-# Γ⊢#B∈J Γx⊢#A∈K
     B[x/A]≤ƛJA⊡B = st-β₂-# Γ⊢#B∈J Γx⊢#A∈K
 
+==-refl-# : ∀{Γ A K} → Γ ⊢#ty A ∈ K → Γ ⊢#ty A == A ∈ K
+==-refl-# Γ⊢#A∈K = st-antisym-# (st-refl-# Γ⊢#A∈K) (st-refl-# Γ⊢#A∈K)
+
 ==-trans-# : ∀{Γ A B C K} →
   Γ ⊢#ty A == B ∈ K →
   Γ ⊢#ty B == C ∈ K →
