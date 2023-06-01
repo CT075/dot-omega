@@ -76,6 +76,9 @@ mutual
     k-sel-# : ∀{A x U τ k} →
       Γ ⊢!var x ∈ U ⟫ [ typ A ∶ S[ τ ∈ k ] ] →
       Γ ⊢#ty x ∙ A ∈ S[ τ ∈ k ]
+    k-rec-# : ∀{x τ} →
+      Γ & x ~ Ty (openType x τ) ⊢ty openType x τ ∈ ✶ →
+      Γ ⊢#ty μ τ ∈ ✶
 
   data _⊢#kd_≤_ (Γ : Context) : Kind → Kind → Set where
     sk-intv-# : ∀{A₁ A₂ B₁ B₂} →
@@ -109,11 +112,11 @@ mutual
       Γ ⊢#ty [ typ A ∶ k₁ ] ≤ [ typ A ∶ k₂ ] ∈ ✶
     st-β₁-# : ∀{J K x A B} →
       Γ ⊢#ty B ∈ J →
-      Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ K →
+      Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ openKind x K →
       Γ ⊢#ty (ƛ J A) ⊡ B ≤ bindType B A ∈ bindKind B K
     st-β₂-# : ∀{J K x A B} →
       Γ ⊢#ty B ∈ J →
-      Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ K →
+      Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ openKind x K →
       Γ ⊢#ty bindType B A ≤ (ƛ J A) ⊡ B ∈ bindKind B K
     st-app-# : ∀{A₁ A₂ B₁ B₂ J K} →
       Γ ⊢#ty A₁ ≤ A₂ ∈ ℿ J K →
@@ -157,3 +160,19 @@ mutual
     ty-sub-# : ∀{e τ₁ τ₂} →
       Γ ⊢#tm e ∈ τ₁ → Γ ⊢#ty τ₁ ≤ τ₂ ∈ ✶ →
       Γ ⊢#tm e ∈ τ₂
+
+st-β-# : ∀{Γ J K x A B} →
+  Γ ⊢#ty B ∈ J →
+  Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ openKind x K →
+  Γ ⊢#ty (ƛ J A) ⊡ B == bindType B A ∈ bindKind B K
+st-β-# Γ⊢#B∈J Γx⊢#A∈K = st-antisym-# ƛJA⊡B≤B[x/A] B[x/A]≤ƛJA⊡B
+  where
+    ƛJA⊡B≤B[x/A] = st-β₁-# Γ⊢#B∈J Γx⊢#A∈K
+    B[x/A]≤ƛJA⊡B = st-β₂-# Γ⊢#B∈J Γx⊢#A∈K
+
+==-trans-# : ∀{Γ A B C K} →
+  Γ ⊢#ty A == B ∈ K →
+  Γ ⊢#ty B == C ∈ K →
+  Γ ⊢#ty A == C ∈ K
+==-trans-# (st-antisym-# A≤B B≤A) (st-antisym-# B≤C C≤B) =
+  st-antisym-# (st-trans-# A≤B B≤C) (st-trans-# C≤B B≤A)

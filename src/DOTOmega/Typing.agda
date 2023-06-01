@@ -88,6 +88,9 @@ mutual
     k-sel : ∀{A x k} →
       Γ ⊢tm ` x ∈ [ typ A ∶ k ] →
       Γ ⊢ty x ∙ A ∈ k
+    k-rec : ∀{x τ} →
+      Γ & x ~ Ty (openType x τ) ⊢ty openType x τ ∈ ✶ →
+      Γ ⊢ty μ τ ∈ ✶
 
   data _⊢kd_≤_ (Γ : Context) : Kind → Kind → Set where
     sk-intv : ∀{A₁ A₂ B₁ B₂} →

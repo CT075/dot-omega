@@ -97,3 +97,18 @@ postulate
   types-wf-# : ∀{Γ t τ} → Γ ⊢#tm t ∈ τ → Σ[ K ∈ Kind ] (Γ ⊢#ty τ ∈ K)
 
   ty-refl : ∀{Γ A K} → Γ ⊢#ty A ∈ K → Γ ⊢#ty A == A ∈ K
+
+  -- TODO: is this even true?
+  proper-types-equality-# :
+    ∀{Γ A B S U} → Γ ⊢#ty A == B ∈ S ∙∙ U → Γ ⊢#ty A == B ∈ ✶
+
+  eq-narrow : ∀{Γ A B K} → Γ ⊢#ty A == B ∈ K → Γ ⊢#ty A == B ∈ S[ A ∈ K ]
+
+eq-left-# : ∀{Γ A B K} → Γ ⊢#ty A == B ∈ K → Γ ⊢#ty A ≤ B ∈ K
+eq-left-# (st-antisym-# A≤B B≤A) = A≤B
+
+eq-right-# : ∀{Γ A B K} → Γ ⊢#ty A == B ∈ K → Γ ⊢#ty B ≤ A ∈ K
+eq-right-# (st-antisym-# A≤B B≤A) = B≤A
+
+eq-refl-# : ∀{Γ A K} → Γ ⊢#ty A ∈ K → Γ ⊢#ty A == A ∈ K
+eq-refl-# Γ⊢#A∈K = st-antisym-# (st-refl-# Γ⊢#A∈K) (st-refl-# Γ⊢#A∈K)
