@@ -29,10 +29,10 @@ data _⊢##var_∈_ (Γ : Ctx VarFact) : Var → Type → Set where
     Γ ⊢##var x ∈ [ typ M ∶ J ] →
     Γ ⊢#kd J ≤ K →
     Γ ⊢##var x ∈ [ typ M ∶ K ]
-  ty-fun-## : ∀{x y S T S' T' J K} →
+  ty-fun-## : ∀{x S T S' T' J K} →
     Γ ⊢##var x ∈ ℿ S T →
     Γ ⊢#ty S' ≤ S ∈ J →
-    Γ & y ~ Ty S' ⊢ty openType y T ≤ openType y T' ∈ K →
+    (∀ y → Γ & y ~ Ty S' ⊢ty openType y T ≤ openType y T' ∈ K) →
     Γ ⊢##var x ∈ ℿ S' T'
   ty-intersect-## : ∀{x A B} →
     Γ ⊢##var x ∈ A →
@@ -61,10 +61,10 @@ data _⊢##val_∈_ (Γ : Ctx VarFact) : Val → Type → Set where
     Γ ⊢##val v ∈ A →
     Γ ⊢!var x ∈ τ ⟫ [ typ M ∶ A ∙∙ A ] →
     Γ ⊢##val v ∈ x ∙ M
-  val-fun-## : ∀{v y S T S' T' J K} →
+  val-fun-## : ∀{v S T S' T' J K} →
     Γ ⊢##val v ∈ ℿ S T →
     Γ ⊢#ty S' ≤ S ∈ J →
-    Γ & y ~ Ty S' ⊢ty openType y T ≤ openType y T' ∈ K →
+    (∀ y → Γ & y ~ Ty S' ⊢ty openType y T ≤ openType y T' ∈ K) →
     Γ ⊢##val v ∈ ℿ S' T'
   val-top-## : ∀{v τ} →
     Γ ⊢##val v ∈ τ →

@@ -35,9 +35,9 @@ mutual
 
   data _⊢#_kd (Γ : Context) : Kind → Set where
     wf-intv-# : ∀{A B} → Γ ⊢#ty A ∈ ✶ → Γ ⊢#ty B ∈ ✶ → Γ ⊢# A ∙∙ B kd
-    wf-darr-# : ∀{x J K} →
+    wf-darr-# : ∀{J K} →
       Γ ⊢# J kd →
-      Γ & x ~ Kd J ⊢ (openKind x K) kd →
+      (∀ x → Γ & x ~ Kd J ⊢ (openKind x K) kd) →
       Γ ⊢# ℿ J K kd
 
   data _⊢#ty_∈_ (Γ : Context) : Type → Kind → Set where
@@ -47,13 +47,13 @@ mutual
     k-sing-# : ∀{A B C} →
       Γ ⊢#ty A ∈ B ∙∙ C →
       Γ ⊢#ty A ∈ A ∙∙ A
-    k-arr-# : ∀{x A B} →
+    k-arr-# : ∀{A B} →
       Γ ⊢#ty A ∈ ✶ →
-      Γ & x ~ Ty A ⊢ty openType x B ∈ ✶ →
+      (∀ x → Γ & x ~ Ty A ⊢ty openType x B ∈ ✶) →
       Γ ⊢#ty ℿ A B ∈ ✶
-    k-abs-# : ∀{x J K A} →
+    k-abs-# : ∀{J K A} →
       Γ ⊢# J kd →
-      Γ & x ~ Kd J ⊢ty openType x A ∈ openKind x K →
+      (∀ x → Γ & x ~ Kd J ⊢ty openType x A ∈ openKind x K) →
       Γ ⊢#ty ƛ J A ∈ ℿ J K
     k-app-# : ∀{J K f τ} →
       Γ ⊢#ty f ∈ ℿ J K →
@@ -76,8 +76,8 @@ mutual
     k-sel-# : ∀{A x U τ k} →
       Γ ⊢!var x ∈ U ⟫ [ typ A ∶ S[ τ ∈ k ] ] →
       Γ ⊢#ty x ∙ A ∈ S[ τ ∈ k ]
-    k-rec-# : ∀{x τ} →
-      Γ & x ~ Ty (openType x τ) ⊢ty openType x τ ∈ ✶ →
+    k-rec-# : ∀{τ} →
+      (∀ x → Γ & x ~ Ty (openType x τ) ⊢ty openType x τ ∈ ✶) →
       Γ ⊢#ty μ τ ∈ ✶
 
   data _⊢#kd_≤_ (Γ : Context) : Kind → Kind → Set where
@@ -85,10 +85,10 @@ mutual
       Γ ⊢#ty A₂ ≤ A₁ ∈ ✶ →
       Γ ⊢#ty B₁ ≤ B₂ ∈ ✶ →
       Γ ⊢#kd A₁ ∙∙ B₁ ≤ A₂ ∙∙ B₂
-    sk-darr-# : ∀{x J₁ J₂ K₁ K₂} →
+    sk-darr-# : ∀{J₁ J₂ K₁ K₂} →
       Γ ⊢# ℿ J₁ K₁ kd →
       Γ ⊢#kd J₂ ≤ J₁ →
-      Γ & x ~ Kd J₂ ⊢kd openKind x K₁ ≤ openKind x K₂ →
+      (∀ x → Γ & x ~ Kd J₂ ⊢kd openKind x K₁ ≤ openKind x K₂) →
       Γ ⊢#kd ℿ J₁ K₁ ≤ ℿ J₂ K₂
 
   data _⊢#ty_≤_∈_ (Γ : Context) : Type → Type → Kind → Set where
@@ -110,13 +110,13 @@ mutual
     st-typ-# : ∀{A k₁ k₂} →
       Γ ⊢#kd k₁ ≤ k₂ →
       Γ ⊢#ty [ typ A ∶ k₁ ] ≤ [ typ A ∶ k₂ ] ∈ ✶
-    st-β₁-# : ∀{J K x A B} →
+    st-β₁-# : ∀{J K A B} →
       Γ ⊢#ty B ∈ J →
-      Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ openKind x K →
+      (∀ x → Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ openKind x K) →
       Γ ⊢#ty (ƛ J A) ⊡ B ≤ bindType B A ∈ bindKind B K
-    st-β₂-# : ∀{J K x A B} →
+    st-β₂-# : ∀{J K A B} →
       Γ ⊢#ty B ∈ J →
-      Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ openKind x K →
+      (∀ x → Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ openKind x K) →
       Γ ⊢#ty bindType B A ≤ (ƛ J A) ⊡ B ∈ bindKind B K
     st-app-# : ∀{A₁ A₂ B₁ B₂ J K} →
       Γ ⊢#ty A₁ ≤ A₂ ∈ ℿ J K →
@@ -133,21 +133,21 @@ mutual
 
   data _⊢#tm_∈_ (Γ : Ctx VarFact) : Term → Type → Set where
     ty-var-# : ∀{name τ} → Γ [ name ]⊢> Ty τ → Γ ⊢#tm `(Free name) ∈ τ
-    ty-ℿ-intro-# : ∀{x τ ρ e} →
-      Γ & x ~ Ty τ ⊢tm openTerm x e ∈ openType x ρ →
+    ty-ℿ-intro-# : ∀{τ ρ e} →
+      (∀ x → Γ & x ~ Ty τ ⊢tm openTerm x e ∈ openType x ρ) →
       Γ ⊢#tm V(ƛ τ e) ∈ ℿ τ ρ
     ty-ℿ-elim-# : ∀{x z τ ρ} →
       Γ ⊢#tm ` x ∈ ℿ τ ρ → Γ ⊢#tm ` z ∈ τ →
       Γ ⊢#tm x ⊡ z ∈ bindType (` z) ρ
-    ty-new-intro-# : ∀{τ x ds} →
-      Γ & x ~ Ty (openType x τ) ⊢defns (map (openDefn x) ds) ∈ (openType x τ) →
+    ty-new-intro-# : ∀{τ ds} →
+      (∀ x → Γ & x ~ Ty (openType x τ) ⊢defns (map (openDefn x) ds) ∈ (openType x τ)) →
       Γ ⊢#tm V(new τ ds) ∈ μ τ
     ty-new-elim-# : ∀{x ℓ τ} →
       Γ ⊢#tm ` x ∈ [ val ℓ ∶ τ ] →
       Γ ⊢#tm x ∙ ℓ ∈ τ
-    ty-let-# : ∀{e₁ e₂ x τ ρ} →
+    ty-let-# : ∀{e₁ e₂ τ ρ} →
       Γ ⊢#tm e₁ ∈ τ →
-      Γ & x ~ Ty τ ⊢tm (openTerm x e₂) ∈ ρ →
+      (∀ x → Γ & x ~ Ty τ ⊢tm (openTerm x e₂) ∈ ρ) →
       Γ ⊢#tm (let' e₁ in' e₂) ∈ ρ
     ty-rec-intro-# : ∀{x τ} →
       Γ ⊢#tm ` x ∈ bindType (` x) τ →
@@ -162,9 +162,9 @@ mutual
       Γ ⊢#tm e ∈ τ₁ → Γ ⊢#ty τ₁ ≤ τ₂ ∈ ✶ →
       Γ ⊢#tm e ∈ τ₂
 
-st-β-# : ∀{Γ J K x A B} →
+st-β-# : ∀{Γ J K A B} →
   Γ ⊢#ty B ∈ J →
-  Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ openKind x K →
+  (∀ x → Γ & x ~ Kd (S[ B ∈ J ]) ⊢#ty openType x A ∈ openKind x K) →
   Γ ⊢#ty (ƛ J A) ⊡ B == bindType B A ∈ bindKind B K
 st-β-# Γ⊢#B∈J Γx⊢#A∈K = st-antisym-# ƛJA⊡B≤B[x/A] B[x/A]≤ƛJA⊡B
   where
