@@ -126,6 +126,7 @@ mutual
     st-bnd₂-# : ∀{A S U} → Γ ⊢#ty A ∈ S ∙∙ U → Γ ⊢#ty A ≤ U ∈ ✶
 
   -- Type equality
+  -- TODO: make this a record
   data _⊢#ty_==_∈_ (Γ : Context) : Type → Type → Kind → Set where
     st-antisym-# : ∀{K A B} →
       Γ ⊢#ty A ≤ B ∈ K → Γ ⊢#ty B ≤ A ∈ K → Γ ⊢#ty A == B ∈ K

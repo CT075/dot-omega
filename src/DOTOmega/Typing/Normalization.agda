@@ -55,6 +55,7 @@ data _tyval : Kind → Set where
   intv-val : ∀ {α} → α whnf → α ∙∙ α tyval
   pi-val : ∀ {J K} → K inert-kd → ℿ J K tyval
 
+-- TODO
 data _store : Context → Set where
   empty-store : [] store
   cons-store-kd : ∀ {Γ x k} → Γ store → k tyval → Γ & x ~ Kd k store
@@ -103,11 +104,13 @@ mutual
         ⟨ Γ & x ~ Kd S[ τ ∈ J ] , A ⟩∈ℰ⟦ openKind x K ⟧) →
       ⟨ Γ , ƛ J' A ⟩∈⟦ ℿ J K ⟧
 
-  data ⟨_,_⟩∈ℰ⟦_⟧ : Context → Type → Kind → Set where
-    denot-eval : ∀{Γ A K} τ →
-      Γ ⊢#ty A == τ ∈ K →
-      ⟨ Γ , τ ⟩∈⟦ K ⟧ →
-      ⟨ Γ , A ⟩∈ℰ⟦ K ⟧
+  record ⟨_,_⟩∈ℰ⟦_⟧ (Γ : Context) (A : Type) (K : Kind) : Set where
+    inductive
+    constructor denot-eval
+    field
+      result : Type
+      A==result : Γ ⊢#ty A == result ∈ K
+      result∈⟦K⟧ : ⟨ Γ , result ⟩∈⟦ K ⟧
 
 -- whyyyy does this have to be so _complicated_
 denot-rec-ind-impl : ∀{Γ τ K} →
@@ -137,8 +140,40 @@ denot-rec-ind-impl {Γ} {ƛ J' A} {ℿ J K} (Pi sJ sK) eq (J≤J' , body-normali
         shape-xK≡sK : kd-shape (openKind x K) ≡ sK
         shape-xK≡sK = trans shape-xK≡shape-K shape-K≡sK
 
+denot-ind-rec-impl : ∀{Γ τ K} →
+  (sK : KindShape) →
+  (kd-shape K ≡ sK) →
+  ⟨ Γ , τ ⟩∈⟦ K ⟧ → denot Γ τ K sK
+denot-ind-rec-impl {K = S ∙∙ U} _ _ (denot-intv τ-whnf S≤τ τ≤U) = (τ-whnf , S≤τ , τ≤U)
+denot-ind-rec-impl {Γ} {ƛ J' A} {ℿ J K} (Pi sJ sK) eq (denot-pi J≤J' body-normalizes') =
+  (J≤J' , body-normalizes (proj₁ (unwrap-Pi-shape eq)))
+  where
+    body-normalizes : kd-shape J ≡ sJ →
+      ∀ τ x →
+      denot Γ τ J sJ →
+      Γ & x ~ Kd S[ τ ∈ J ] ⊢#ty openType x A ∈ openKind x K →
+      Σ[ α ∈ Type ]
+      ((Γ & x ~ Kd S[ τ ∈ J ]) ⊢#ty A == α ∈ openKind x K ×
+        denot (Γ & x ~ Kd S[ τ ∈ J ]) α (openKind x K) sK)
+    body-normalizes refl τ x ⟨Γ,τ⟩∈'⟦J⟧ Γx⊢#xA∈xK =
+      let (denot-eval α Γx⊢#A==α ⟨Γx,α⟩∈⟦xK⟧) = body-normalizes' τ x ⟨Γ,τ⟩∈'⟦J⟧ Γx⊢#xA∈xK
+      in
+        (α , Γx⊢#A==α , denot-ind-rec-impl sK shape-xK≡sK ⟨Γx,α⟩∈⟦xK⟧)
+      where
+        shape-xK≡shape-K : kd-shape (openKind x K) ≡ kd-shape K
+        shape-xK≡shape-K = liftKind-preserves-shape (openVar x) K
+
+        shape-K≡sK : kd-shape K ≡ sK
+        shape-K≡sK = proj₂ (unwrap-Pi-shape eq)
+
+        shape-xK≡sK : kd-shape (openKind x K) ≡ sK
+        shape-xK≡sK = trans shape-xK≡shape-K shape-K≡sK
+
 denot-rec-ind : ∀{Γ τ K} → ⟨ Γ , τ ⟩∈'⟦ K ⟧ → ⟨ Γ , τ ⟩∈⟦ K ⟧
 denot-rec-ind {K = K} = denot-rec-ind-impl (kd-shape K) refl
+
+denot-ind-rec : ∀{Γ τ K} → ⟨ Γ , τ ⟩∈⟦ K ⟧ → ⟨ Γ , τ ⟩∈'⟦ K ⟧
+denot-ind-rec {K = K} = denot-ind-rec-impl (kd-shape K) refl
 
 weak-head-normalization : ∀ {Γ A K} →
   Γ store →
@@ -151,12 +186,12 @@ weak-head-normalization Γ-store k-top-# =
 weak-head-normalization Γ-store k-bot-# =
   denot-eval ⊥ (==-refl-# k-bot-#)
     (denot-intv ⊥-whnf (st-refl-# k-bot-#) (st-top-# k-bot-#))
-weak-head-normalization Γ-store (k-sing-# Γ⊢#A∈S∙∙U) = {! !}
-weak-head-normalization Γ-store (k-arr-# Γ⊢#A∈✶ Γx⊢#xB∈✶) = {! !}
+weak-head-normalization Γ-store (k-sing-# Γ⊢#A∈S∙∙U) = {!!}
+weak-head-normalization Γ-store (k-arr-# Γ⊢#A∈✶ Γx⊢#xB∈✶) = {!!}
 weak-head-normalization Γ-store (k-abs-# x x₁) = {! !}
 weak-head-normalization Γ-store (k-app-# Γ⊢#A∈K Γ⊢#A∈K₁) = {! !}
 weak-head-normalization Γ-store (k-intersect-# Γ⊢#A∈K Γ⊢#A∈K₁) = {! !}
-weak-head-normalization Γ-store (k-sub-# Γ⊢#A∈K x) = {! !}
+weak-head-normalization Γ-store (k-sub-# Γ⊢#A∈J J≤K) = {! !}
 weak-head-normalization Γ-store (k-field-# Γ⊢#A∈K) = {! !}
 weak-head-normalization Γ-store (k-typ-# x) = {! !}
 weak-head-normalization Γ-store (k-sel-# x) = {! !}
