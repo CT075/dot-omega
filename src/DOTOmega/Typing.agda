@@ -116,6 +116,10 @@ mutual
     st-and₂ : ∀{ρ τ₁ τ₂ K} →
       Γ ⊢ty ρ ≤ τ₁ ∈ K → Γ ⊢ty ρ ≤ τ₂ ∈ K →
       Γ ⊢ty ρ ≤ τ₁ ∧ τ₂ ∈ K
+    st-abs : ∀{x S₁ S₂ T₁ T₂} →
+      Γ ⊢ty S₂ ≤ S₁ ∈ ✶ →
+      Γ & x ~ Ty S₂ ⊢ty openType x T₁ ≤ openType x T₂ ∈ ✶ →
+      Γ ⊢ty ℿ S₁ T₁ ≤ ℿ S₂ T₂ ∈ ✶
     st-field : ∀{ℓ τ₁ τ₂ k} →
       Γ ⊢ty τ₁ ≤ τ₂ ∈ k →
       Γ ⊢ty [ val ℓ ∶ τ₁ ] ≤ [ val ℓ ∶ τ₂ ] ∈ ✶
@@ -123,11 +127,11 @@ mutual
       Γ ⊢kd k₁ ≤ k₂ →
       Γ ⊢ty [ typ A ∶ k₁ ] ≤ [ typ A ∶ k₂ ] ∈ ✶
     st-β₁ : ∀{J K x A B} →
-      Γ & x ~ Kd J ⊢ty openType x A ∈ K →
+      Γ & x ~ Kd J ⊢ty openType x A ∈ openKind x K →
       Γ ⊢ty B ∈ J →
       Γ ⊢ty (ƛ J A) ⊡ B ≤ bindType B A ∈ bindKind B K
     st-β₂ : ∀{J K x A B} →
-      Γ & x ~ Kd J ⊢ty openType x A ∈ K →
+      Γ & x ~ Kd J ⊢ty openType x A ∈ openKind x K →
       Γ ⊢ty B ∈ J →
       Γ ⊢ty bindType B A ≤ (ƛ J A) ⊡ B ∈ bindKind B K
     st-app : ∀{A₁ A₂ B₁ B₂ J K} →

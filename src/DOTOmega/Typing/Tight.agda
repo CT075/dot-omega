@@ -104,6 +104,10 @@ mutual
     st-and₂-# : ∀{ρ τ₁ τ₂ K} →
       Γ ⊢#ty ρ ≤ τ₁ ∈ K → Γ ⊢#ty ρ ≤ τ₂ ∈ K →
       Γ ⊢#ty ρ ≤ τ₁ ∧ τ₂ ∈ K
+    st-abs-# : ∀{x S₁ S₂ T₁ T₂} →
+      Γ ⊢#ty S₂ ≤ S₁ ∈ ✶ →
+      Γ & x ~ Ty S₂ ⊢ty openType x T₁ ≤ openType x T₂ ∈ ✶ →
+      Γ ⊢#ty ℿ S₁ T₁ ≤ ℿ S₂ T₂ ∈ ✶
     st-field-# : ∀{ℓ τ₁ τ₂ k} →
       Γ ⊢#ty τ₁ ≤ τ₂ ∈ k →
       Γ ⊢#ty [ val ℓ ∶ τ₁ ] ≤ [ val ℓ ∶ τ₂ ] ∈ ✶

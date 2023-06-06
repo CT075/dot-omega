@@ -186,10 +186,36 @@ weak-head-normalization Γ-store k-top-# =
 weak-head-normalization Γ-store k-bot-# =
   denot-eval ⊥ (==-refl-# k-bot-#)
     (denot-intv ⊥-whnf (st-refl-# k-bot-#) (st-top-# k-bot-#))
-weak-head-normalization Γ-store (k-sing-# Γ⊢#A∈S∙∙U) = {!!}
-weak-head-normalization Γ-store (k-arr-# Γ⊢#A∈✶ Γx⊢#xB∈✶) = {!!}
-weak-head-normalization Γ-store (k-abs-# x x₁) = {! !}
-weak-head-normalization Γ-store (k-app-# Γ⊢#A∈K Γ⊢#A∈K₁) = {! !}
+weak-head-normalization {Γ} {A} Γ-store (k-sing-# Γ⊢#A∈S∙∙U) =
+  denot-eval τ (eq-narrow-# A==τ∈S∙∙U) (denot-intv τ-whnf A≤τ τ≤A)
+  where
+    ⟨Γ,A⟩∈ℰ⟦S∙∙U⟧ = weak-head-normalization Γ-store Γ⊢#A∈S∙∙U
+
+    unwrap-denot : ∀{Γ τ S U} → ⟨ Γ , τ ⟩∈⟦ S ∙∙ U ⟧ → τ whnf
+    unwrap-denot (denot-intv τ-whnf _ _) = τ-whnf
+
+    open ⟨_,_⟩∈ℰ⟦_⟧
+    τ = result ⟨Γ,A⟩∈ℰ⟦S∙∙U⟧
+    A==τ∈S∙∙U = A==result ⟨Γ,A⟩∈ℰ⟦S∙∙U⟧
+    τ∈⟦S∙∙U⟧ = result∈⟦K⟧ ⟨Γ,A⟩∈ℰ⟦S∙∙U⟧
+
+    τ-whnf : τ whnf
+    τ-whnf = unwrap-denot τ∈⟦S∙∙U⟧
+
+    A==τ∈✶ : Γ ⊢#ty A == τ ∈ ✶
+    A==τ∈✶ = proper-types-equality-# A==τ∈S∙∙U
+
+    A≤τ = eq-left-# A==τ∈✶
+    τ≤A = eq-right-# A==τ∈✶
+weak-head-normalization {A = ℿ S T} Γ-store Γ⊢#ℿST∈✶@(k-arr-# Γ⊢#S∈✶ Γx⊢#xT∈✶) =
+  denot-eval (ℿ S T) (eq-refl-# Γ⊢#ℿST∈✶)
+    (denot-intv ℿ-whnf (st-bot-# Γ⊢#ℿST∈✶) (st-top-# Γ⊢#ℿST∈✶))
+weak-head-normalization Γ-store (k-abs-# {x} Γ⊢#J-kd Γx∶J⊢xA∈xK) = {!!}
+weak-head-normalization Γ-store (k-app-# Γ⊢#F∈ℿJK Γ⊢#A∈J) =
+  let denot-eval f F==f f∈⟦ℿJK⟧ = weak-head-normalization Γ-store Γ⊢#F∈ℿJK
+      denot-eval α A==α α∈⟦J⟧ = weak-head-normalization Γ-store Γ⊢#A∈J
+   in
+  {!!}
 weak-head-normalization Γ-store (k-intersect-# Γ⊢#A∈K Γ⊢#A∈K₁) = {! !}
 weak-head-normalization Γ-store (k-sub-# Γ⊢#A∈J J≤K) = {! !}
 weak-head-normalization Γ-store (k-field-# Γ⊢#A∈K) = {! !}

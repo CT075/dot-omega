@@ -226,6 +226,10 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
   st-and₂-#
     (⊢→⊢#-step (_ , Subtyping Γ⊢ρ≤τ₁∈K) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
     (⊢→⊢#-step (_ , Subtyping Γ⊢ρ≤τ₂∈K) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
+⊢→⊢#-step (_ , Subtyping (st-abs Γ⊢S₂≤S₁ Γx⊢xT₁≤xT₂)) Γinert (acc rec) =
+  st-abs-#
+    (⊢→⊢#-step (_ , Subtyping Γ⊢S₂≤S₁) Γinert (rec _ (s≤s (m≤m⊔n _ _))))
+    Γx⊢xT₁≤xT₂
 ⊢→⊢#-step (_ , Subtyping (st-field Γ⊢τ₁≤τ₂∈K)) Γinert (acc rec) =
   st-field-# (⊢→⊢#-step (_ , Subtyping Γ⊢τ₁≤τ₂∈K) Γinert (rec _ (s≤s (≤-reflexive refl))))
 ⊢→⊢#-step (_ , Subtyping (st-typ Γ⊢J≤K)) Γinert (acc rec) =
@@ -274,11 +278,11 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
       (⊢→⊢#-step (_ , Kinding Γ⊢B∈J) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
       Γx∶S[B∈J]⊢#A∈K
   where
-    narrowed : Σ[ p ∈ Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ K ]
+    narrowed : Σ[ p ∈ Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ openKind x K ]
       (⊢ty[]∈[]-h Γx∶J⊢A∈K ≡ ⊢ty[]∈[]-h p)
     narrowed = narrowing-sk-kd Γx∶J⊢A∈K (sing-sub Γ⊢B∈J)
 
-    Γx∶S[B∈J]⊢A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ K
+    Γx∶S[B∈J]⊢A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ openKind x K
     Γx∶S[B∈J]⊢A∈K = proj₁ narrowed
 
     -- the height of the narrowed subtree is the same as the original, so...
@@ -286,7 +290,7 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
     height-eq = proj₂ narrowed
 
     -- ...we can cite the inductive hypothesis on it.
-    Γx∶S[B∈J]⊢#A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢#ty openType x A ∈ K
+    Γx∶S[B∈J]⊢#A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢#ty openType x A ∈ openKind x K
     Γx∶S[B∈J]⊢#A∈K rewrite height-eq = ⊢→⊢#-step
       (_ , Kinding Γx∶S[B∈J]⊢A∈K)
       (cons-inert-kd Γinert (sing-inert B J))
@@ -297,17 +301,17 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
       (⊢→⊢#-step (_ , Kinding Γ⊢B∈J) Γinert (rec _ (s≤s (m≤n⊔m _ _))))
       Γx∶S[B∈J]⊢#A∈K
   where
-    narrowed : Σ[ p ∈ Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ K ]
+    narrowed : Σ[ p ∈ Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ openKind x K ]
       (⊢ty[]∈[]-h Γx∶J⊢A∈K ≡ ⊢ty[]∈[]-h p)
     narrowed = narrowing-sk-kd Γx∶J⊢A∈K (sing-sub Γ⊢B∈J)
 
-    Γx∶S[B∈J]⊢A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ K
+    Γx∶S[B∈J]⊢A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢ty openType x A ∈ openKind x K
     Γx∶S[B∈J]⊢A∈K = proj₁ narrowed
 
     height-eq : ⊢ty[]∈[]-h Γx∶J⊢A∈K ≡ ⊢ty[]∈[]-h Γx∶S[B∈J]⊢A∈K
     height-eq = proj₂ narrowed
 
-    Γx∶S[B∈J]⊢#A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢#ty openType x A ∈ K
+    Γx∶S[B∈J]⊢#A∈K : Γ & x ~ Kd S[ B ∈ J ] ⊢#ty openType x A ∈ openKind x K
     Γx∶S[B∈J]⊢#A∈K rewrite height-eq = ⊢→⊢#-step
       (_ , Kinding Γx∶S[B∈J]⊢A∈K)
       (cons-inert-kd Γinert (sing-inert B J))
@@ -363,6 +367,7 @@ j < j' = PackedJudgment-height j <ℕ PackedJudgment-height j'
       Γ⊢#x∙M∈K = k-sub-# Γ⊢#x∙M∈J Γ⊢#J≤K
    in
   Γ⊢#x∙M∈K
+⊢→⊢#-step (_ , Kinding (k-rec Γx⊢xτ∈✶)) Γinert (acc rec) = k-rec-# Γx⊢xτ∈✶
 
 -- Kind validity
 ⊢→⊢#-step (_ , IsKd (wf-intv Γ⊢S∈✶ Γ⊢U∈✶)) Γinert (acc rec) =

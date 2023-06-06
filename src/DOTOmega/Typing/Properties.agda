@@ -58,6 +58,7 @@ mutual
   ⊢ty[]∈[]-h (k-field Γ⊢τ∈S∙∙U) = suc (⊢ty[]∈[]-h Γ⊢τ∈S∙∙U)
   ⊢ty[]∈[]-h (k-typ Γ⊢Kkd) = suc (⊢[]kd-h Γ⊢Kkd)
   ⊢ty[]∈[]-h (k-sel Γ⊢x∈[M∶k]) = suc (⊢tm[]∈[]-h Γ⊢x∈[M∶k])
+  ⊢ty[]∈[]-h (k-rec Γx⊢xτ∈✶) = suc (⊢ty[]∈[]-h Γx⊢xτ∈✶)
 
   ⊢ty[]≤[]∈[]-h : ∀{Γ A B K} → Γ ⊢ty A ≤ B ∈ K → ℕ
   ⊢ty[]≤[]∈[]-h (st-refl Γ⊢A∈K) = suc (⊢ty[]∈[]-h Γ⊢A∈K)
@@ -69,6 +70,8 @@ mutual
   ⊢ty[]≤[]∈[]-h (st-and-l₂ Γ⊢τ₁∧τ₂∈K) = suc (⊢ty[]∈[]-h Γ⊢τ₁∧τ₂∈K)
   ⊢ty[]≤[]∈[]-h (st-and₂ Γ⊢ρ≤τ₁ Γ⊢ρ≤τ₂) =
     suc (⊢ty[]≤[]∈[]-h Γ⊢ρ≤τ₁ ⊔ ⊢ty[]≤[]∈[]-h Γ⊢ρ≤τ₂)
+  ⊢ty[]≤[]∈[]-h (st-abs Γ⊢S₂≤S₁ Γx⊢xT₁≤xT₂) =
+    suc (⊢ty[]≤[]∈[]-h Γ⊢S₂≤S₁ ⊔ ⊢ty[]≤[]∈[]-h Γx⊢xT₁≤xT₂)
   ⊢ty[]≤[]∈[]-h (st-field Γ⊢τ₁≤τ₂) = suc (⊢ty[]≤[]∈[]-h Γ⊢τ₁≤τ₂)
   ⊢ty[]≤[]∈[]-h (st-typ Γ⊢J≤K) = suc (⊢kd[]≤[]-h Γ⊢J≤K)
   ⊢ty[]≤[]∈[]-h (st-β₁ Γx⊢A∈K Γ⊢B∈J) = suc (⊢ty[]∈[]-h Γx⊢A∈K ⊔ ⊢ty[]∈[]-h Γ⊢B∈J)
