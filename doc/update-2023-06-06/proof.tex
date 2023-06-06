@@ -35,6 +35,7 @@
 \newcommand{\dom}[1]{\textrm{domain}(#1)}
 \newcommand{\KDenot}[1]{\llbracket #1 \rrbracket}
 \newcommand{\KDenotE}[1]{\mathcal{E} \llbracket #1 \rrbracket}
+\newcommand{\Sing}[2]{Sing_{#2}(#1)}
 \newcommand{\invdash}{\vdash_{\#\#}}
 
 \newtheorem{theorem}{Theorem}
@@ -48,7 +49,9 @@
 
 \setlength{\parindent}{0cm}
 
-\title{Soundness for \DOTw{} (update \today)}
+\title{%
+  Weak-head normalization of $\DOTw{}$ types \\
+  \large Soundness for \DOTw{} update \today}
 \author{Cameron Wong}
 
 \begin{document}
@@ -58,73 +61,108 @@
 
 \section{Last time}
 
-The key to this proof of soundness is in the equivalence of DOT's regular
-typing rules to a restricted set of \emph{tight typing} rules which are far
-better behaved. Previously, we demonstrated how tight typing can be generalized
-to a higher-kinded setting by adjusting the beta-reduction rules to enforce
-that the lambda body is still well-kinded with the concrete argument, avoiding
-the impossible reductions that are usually permitted by bad bounds.
+Last time, we discussed the generalization of \emph{tight typing}
+\citet{rapoport2017} to a higher-kinded setting. Tight typing is a
+re-formulation of the full DOT typing rules to have nicer properties, and
+showed how tight typing is equivalent to regular typing under a class of
+well-behaved (\emph{inert}) contexts. Specifically, an inert context is one in
+which all abstract types (either introduced indirectly via type members or
+directly via type-level functions) have \emph{singleton kinds} (fig.
+\ref{fig:singletons}). Specifically, this also necessitated strengthening the
+premises of type-level beta-reduction to require that the body of an applied
+lambda still typechecks after substitution.
 
-\section{Normalization of types}
+\begin{figure}[ht!]
+  \begin{align*}
+    \Sing{A}{\interval{S}{U}} &= \interval{A}{A} \\
+    \Sing{A}{\KDepArr{X}{J}{K}} &= \KDepArr{X}{J}{\Sing{A\ X}{K}}
+  \end{align*}
+  \caption{Defining singleton kinds}\label{fig:singletons}
+\end{figure}
 
-The interesting change in showing type soundness in a higher-kinded
-system is in the proof of progress, which requires deducing the form of a value
-from its type. Specifically, the type of a term may be itself a complex beta
-redex that is equivalent to one with a canonical form. To resolve this, we must
-first show that every well-kinded type can indeed be reduced to such a form.
+Moving forwards, generalizing \citet{rapoport2017}'s proof of preservation to
+$\DOTw{}$ is straightforward, with no issues specific to the higher-kinded
+setting. Progress, however, requires canonical forms, which in turn requires at
+least some level of evaluation of type operators. We show only weak-head
+normalization, which is enough to give us back our canonical forms lemmas.
 
-An important observation is that, in inert contexts, all abstract types (type
-members and type variables) must be singleton kinds. This means that an inert
-context can also serve as a variable store for type-level evaluation (via Lemma
-\ref{lemma:typesubst}), meaning we can use a logical-relation based approach
-using inert contexts $\Gamma$ as evaluation heaps.
+\section{Inert contexts as variable stores}
 
-A straightforward attempt may look like so:
+Typically, a logical relations-based proof requires tracking a variable store,
+with extra machinery ensuring that the store remains in sync with the typing
+context. Attempting to do so for type-level reductions in $\DOTw{}$, however,
+is surprisingly fraught, owing to $\DOTw{}$'s type language making use of two
+non-interchangeable classes of syntactic variables (namely, type variables and
+term variables), only one of which is ever substituted for. Splitting the
+context to assign to type and term variables separately is possible
+but does not actually solve the problem, as we are still unable to reduce
+applications of the form $x.F\ A$ for some termvar $x$.
+
+A second problem is that, just by the nature of the high-level definition of
+interval kinds, any denotation $\KDenot{\interval{S}{U}}$ must necessarily
+reference the typing context $\Gamma$ to even state that $\Gamma \vdash_\# S
+\le \tau \le U$.
+
+Luckily, inert contexts provide a way out. We make use of the following
+property, which follows directly from the definition of inertness:
+\begin{property}
+  For inert contexts $\Gamma$, typevars $X$ and termvars $x$:
+  \begin{itemize}
+    \item if $\Gamma(X) = K$, or
+    \item if $\Gamma(x) : \mu(\dots \land \objval{type}{M}{K} \land \dots)$,
+  \end{itemize}
+  then $K = \Sing{A}{K'}$ for some $A$ and $K'$.
+\end{property}
+
+We also make use of the following lemmas:
+\begin{lemma}\label{lemma:sing-defn}
+  If $\Gamma \vdash_\# A : \Sing{B}{K}$, then $\Gamma \vdash_\# A == B : K$
+\end{lemma}
+\begin{proof}
+  By induction on the kind $K$. If $K = \interval{S}{U}$, then $\Sing{B}{K}=
+  \interval{B}{B}$, so $\Gamma \vdash_\# B \le A \le B : \interval{S}{U}$ by
+  \textsc{ST-bnd}$_1$ and \textsc{ST-bnd}$_2$.
+\end{proof}
+\begin{lemma}[Type Substitution]\label{lemma:typesubst}
+  For inert contexts $\Gamma$,
+  \begin{itemize}
+    \item $\Gamma, X: S(A:J) \vdash T : K$ implies
+      $\Gamma \vdash \subst{T}{X}{A} : \subst{K}{X}{A}$
+    \item $\Gamma, X: S(A:J) \vdash T_1 \le T_2 : K$ implies
+      $\Gamma \vdash \subst{T_1}{X}{A} \le \subst{T_2}{X}{A} : \subst{K}{X}{A}$
+  \end{itemize}
+\end{lemma}
+\begin{proof}
+  Convert to tight typing, then induct on the tight typing and tight subtyping
+  judgments.
+\end{proof}
+
+Together, these mean that inert contexts can actually serve as (type) variable
+stores themselves. While this does require additional bookkeeping to ensure
+that the context remains inert while traversing the (tight) typing derivation,
+tight typing is designed precisely to ensure this. This has the additional
+side-effect of forcing us to reason entirely in terms of tight typing, but we
+wanted to do that anyway\footnote{Arbitrary reduction of open types is already
+known to be unsound in unrestricted DOT-style calculi. While we may be able to
+recover (weak-head) normalization anyway by starting from an empty context, any
+proof based on the unrestricted rules will need some mechanism to address
+abstract type members anyway, which was the original point of the tight typing
+rules to begin with.}.
+
+\section{The Proof}
+
+We define our logical relation as follows:
 \begin{align*}
   \KDenot{\interval{S}{U}} &=& \{ \langle \Gamma, \tau \rangle :
-    \Gamma\ \text{inert} \land \Gamma \vdash S \le \tau \le U : * \} \\
+    \Gamma \vdash_\# S \le \tau \le U : \TyKd \} \\
   \KDenot{\KDepArr{X}{J}{K}} &=& \{ \langle \Gamma, \lambda(X:J).A \rangle :
     \forall B \in \KDenot{J} .
-    \Gamma\ \text{inert} \land
     \langle (\Gamma, X:S(B:K)), A \rangle \in \KDenotE{K} \} \\
   \KDenotE{K} &=& \{ \langle \Gamma, A \rangle :
     \exists V .
-    V\ \text{normal} \land
-    \Gamma \vdash A == V : K \}
+    V\ \text{whnf} \land
+    \Gamma \vdash_\# A == V : K \}
 \end{align*}
-
-However, with this definition, it is not true that $\Gamma \vdash \lambda
-(X:J).A : \KDepArr{X}{J}{K}$ implies that $\langle \Gamma, \lambda(X:J).A
-\rangle \in \KDenotE{\KDepArr{X}{J}{K}}$ when $\Gamma$ is inert. The culprit
-is the possibility of bad bounds in the parameter kind $J$, leading to the
-evaluation of the function body getting stuck with a type operator of the wrong
-form.
-
-\textcolor{red}{I'm 95\% sure that this doesn't actually break the statement --
-in order to reach kind $*$, we \emph{must} have some witness that the kind $J$
-is good, so it's just a matter of designing the relation to pass this evidence
-through properly, but I wasn't able to come up with a good one.}
-
-\textcolor{red}{%
-We could attempt to use the same method as Tiark (indexing the relation with
-upper and lower bounds), but it would likely require lots of reworking -- in
-System D-sub, the bounds are a different syntactic sort (types) as the thing
-being reduced (terms), but here the bounds are actually the same sort (types
-vs kinds). It also is not obvious to me how to generalize it to function
-kinds.}
-
-\section{The Rest}
-
-If types can be strongly normalized, then we can recover \citet{rapoport2017}'s
-proofs of progress and preservation by simply normalizing types before
-proceeding with the same induction. Importantly, as progress and preservation
-are expressed from an empty context, this can always be done by using the
-concrete good-bounds witnesses to construct the necessary inert contexts.
-
-If it can't be shown that types are strongly normalizing, we may be able to
-get away with weak-head normalization, as that's all that's really necessary
-for canonical forms. This will likely require a more involved progress and
-preservation proof that interleaves weak-head steps with progress.
 
 \newpage
 \appendix
@@ -248,6 +286,14 @@ necessary.
       {\Gamma Z : J \vdash A : K \and
        \Gamma \vdash B : J}
       {\Gamma \vdash \subst{A}{Z}{B} \le (\lambda (Z: J).A)\ B : \subst{K}{Z}{B}}
+      \and
+    \inferrule*[right=ST-bnd$_1$]
+      {\Gamma \vdash A : \interval{S}{U}}
+      {\Gamma \vdash S \le A : *}
+      \and
+    \inferrule*[right=ST-bnd$_2$]
+      {\Gamma \vdash A : \interval{S}{U}}
+      {\Gamma \vdash A \le U : *}
   \end{mathpar}
   \caption{Subtyping}
 \end{figure}
@@ -420,6 +466,13 @@ to general typing.
       {\Gamma \vdash_\# B : J \and
        \Gamma, Z: S(B:J) \vdash_\# A : K}
       {\Gamma \vdash_\# \subst{A}{Z}{B} \le (\lambda (Z: J).A)\ B : \subst{K}{Z}{B}}
+    \inferrule*[right=ST-bnd$_1$-\#]
+      {\Gamma \vdash_\# A : \interval{S}{U}}
+      {\Gamma \vdash_\# S \le A : *}
+      \and
+    \inferrule*[right=ST-bnd$_2$-\#]
+      {\Gamma \vdash_\# A : \interval{S}{U}}
+      {\Gamma \vdash_\# A \le U : *}
   \end{mathpar}
   \caption{Subtyping}
 \end{figure}
@@ -532,20 +585,6 @@ to general typing.
 \end{figure}
 
 \section{Auxiliary Lemmas}
-
-\begin{lemma}[Type Substitution]\label{lemma:typesubst}
-  For inert contexts $\Gamma$,
-  \begin{itemize}
-    \item $\Gamma, X: S(A:J) \vdash T : K$ implies
-      $\Gamma \vdash \subst{T}{X}{A} : \subst{K}{X}{A}$
-    \item $\Gamma, X: S(A:J) \vdash T_1 \le T_2 : K$ implies
-      $\Gamma \vdash \subst{T_1}{X}{A} \le \subst{T_2}{X}{A} : \subst{K}{X}{A}$
-  \end{itemize}
-\end{lemma}
-\begin{proof}
-  Convert to tight typing, then induct on the tight typing and tight subtyping
-  judgments.
-\end{proof}
 
 \begin{lemma}[Tight to invertible typing]
   For inert contexts $\Gamma$, $\Gamma \vdash_\# x: \tau$ implies
