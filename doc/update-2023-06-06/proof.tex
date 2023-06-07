@@ -57,14 +57,17 @@
 \begin{document}
 \maketitle
 
+% TODO: Fix up prose errors
+% TODO: Add some intuition on how the relation is constructed
+
 \setlength{\parskip}{\baselineskip}
 
 \section{Last time}
 
 Last time, we discussed the generalization of \emph{tight typing}
 \citet{rapoport2017} to a higher-kinded setting. Tight typing is a
-re-formulation of the full DOT typing rules to have nicer properties, and
-showed how tight typing is equivalent to regular typing under a class of
+re-formulation of the full DOT typing rules to have nicer properties. We also
+showed that tight typing is equivalent to regular typing under a class of
 well-behaved (\emph{inert}) contexts. Specifically, an inert context is one in
 which all abstract types (either introduced indirectly via type members or
 directly via type-level functions) have \emph{singleton kinds} (fig.
@@ -157,6 +160,7 @@ We define our logical relation as follows:
     \tau\ \text{whnf} \land
     \Gamma \vdash_\# S \le \tau \le U : \TyKd \} \\
   \KDenot{\KDepArr{X}{J}{K}} &=& \{ \langle \Gamma, \lambda(X:J).A \rangle :
+    % TODO: Tighten up the notation -- it should be <Gamma, B>, not just B
     \forall B \in \KDenotE{J} .
     \langle (\Gamma, X:\Sing{B}{J}), A \rangle \in \KDenotE{K} \} \\
   \KDenotE{K} &=& \{ \langle \Gamma, A \rangle :
@@ -206,6 +210,7 @@ At last, the strong normalization theorem, then, is as follows:
 \begin{proof}
   By induction on the derivation:
 
+  % TODO: Mention that these are only the interesting cases.
   \begin{itemize}
     \item Case \textsc{K-Var-\#}: By the store property.
 
