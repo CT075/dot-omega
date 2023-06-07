@@ -10,7 +10,7 @@ open import Data.Bool using (true; false; if_then_else_)
 open import Data.Nat using (ℕ; _⊔_; zero; suc)
 open import Data.List using ([]; map)
 open import Data.Empty using (⊥-elim) renaming (⊥ to Void)
-open import Data.Product using (Σ-syntax)
+open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Nullary using (yes; no)
 open import Relation.Nullary.Negation using (¬_)
 open import Relation.Nullary.Decidable using (Dec; isYes)
@@ -23,6 +23,22 @@ open import Data.Context.Properties
 
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing TypeL TermL
+
+typed-var-is-free : ∀ {Γ var τ} →
+  Γ ⊢tm ` var ∈ τ →
+  Σ[ x ∈ Name ](var ≡ Free x)
+typed-var-is-free (ty-var {name} Γ[name]⊢>τ) = (name , refl)
+typed-var-is-free (ty-rec-intro Γ⊢var∈τ) = typed-var-is-free Γ⊢var∈τ
+typed-var-is-free (ty-rec-elim Γ⊢var∈τ) = typed-var-is-free Γ⊢var∈τ
+typed-var-is-free (ty-and-intro Γ⊢var∈S Γ⊢var∈U) = typed-var-is-free Γ⊢var∈S
+typed-var-is-free (ty-sub Γ⊢var∈S S≤U) = typed-var-is-free Γ⊢var∈S
+
+postulate
+  weakening-tm-sk : ∀ {Γ x τ J K} →
+    Γ ⊢kd J ≤ K →
+    Γ & x ~ Ty τ ⊢kd J ≤ K
+
+  typing-validity : ∀ {Γ e τ} → Γ ⊢tm e ∈ τ → Γ ⊢ty τ ∈ ✶
 
 -- Induction measures
 
@@ -110,10 +126,6 @@ mutual
     suc (⊢defns[]∈[]-h Γ⊢ds∈τ ⊔ ⊢defn[]∈[]-h Γ⊢d∈D)
 
 postulate
-  weakening-tm-sk : ∀ {Γ x τ J K} →
-    Γ ⊢kd J ≤ K →
-    Γ & x ~ Ty τ ⊢kd J ≤ K
-
   narrowing-sk-kd : ∀ {Γ τ x J₁ J₂ K} →
     (p : Γ & x ~ Kd J₂ ⊢ty τ ∈ K) →
     Γ ⊢kd J₁ ≤ J₂ →
@@ -124,6 +136,7 @@ postulate
     (pf : Γ [ x ]⊢> Kd K) →
     Γ ⊢kd J ≤ K →
     replace Γ x (Kd J) pf ⊢tm e ∈ τ
+
 {-
 narrowing-sk-tm {Γ} {x = x} {J = J} (ty-ℿ-intro {y} {τ} {ρ} {e} e∈ρ) pf J≤K =
   ty-ℿ-intro narrow-e
@@ -164,3 +177,5 @@ narrowing-sk-tm {Γ} {`(Free x)} {y} {τ} {J} {K} (ty-var Γ[x]⊢>τ) Γ[y]⊢>
    in
   ⊥-elim (K≢τ K≡τ)
 -}
+
+

@@ -216,7 +216,7 @@ weak-head-normalization Γ-store (k-app-# Γ⊢#F∈ℿJK Γ⊢#A∈J) =
       denot-eval α A==α α∈⟦J⟧ = weak-head-normalization Γ-store Γ⊢#A∈J
    in
   {!!}
-weak-head-normalization Γ-store (k-intersect-# Γ⊢#A∈K Γ⊢#A∈K₁) = {! !}
+weak-head-normalization Γ-store (k-intersect-# Γ⊢#S∈✶ Γ⊢#U∈✶) = {! !}
 weak-head-normalization Γ-store (k-sub-# Γ⊢#A∈J J≤K) = {! !}
 weak-head-normalization Γ-store (k-field-# Γ⊢#A∈K) = {! !}
 weak-head-normalization Γ-store (k-typ-# x) = {! !}

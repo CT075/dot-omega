@@ -29,7 +29,7 @@ data _⇒_ : Stack × Term → Stack × Term → Set where
   ⇒-let-val : ∀{E x v e} →
     (E , let' V v in' e) ⇒ (E & x ~ v , openTerm x e)
   ⇒-let-var : ∀{E y e} →
-    (E , let' ` (Free y) in' e) ⇒ (E , plugTerm (Free y) e)
+    (E , let' ` y in' e) ⇒ (E , plugTerm y e)
   ⇒-let-inner : ∀{E E' e₀ e₀' e} →
     (E , e₀) ⇒ (E' , e₀') →
     (E , let' e₀ in' e) ⇒ (E' , let' e₀' in' e)

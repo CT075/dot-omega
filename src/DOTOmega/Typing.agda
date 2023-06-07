@@ -162,7 +162,7 @@ mutual
       Γ ⊢tm x ∙ ℓ ∈ τ
     ty-let : ∀{e₁ e₂ x τ ρ} →
       Γ ⊢tm e₁ ∈ τ →
-      Γ & x ~ Ty τ ⊢tm (openTerm x e₂) ∈ ρ →
+      Γ & x ~ Ty τ ⊢tm openTerm x e₂ ∈ ρ →
       Γ ⊢tm (let' e₁ in' e₂) ∈ ρ
     ty-rec-intro : ∀{x τ} →
       Γ ⊢tm ` x ∈ bindType (` x) τ →

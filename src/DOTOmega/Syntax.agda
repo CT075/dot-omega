@@ -62,7 +62,6 @@ mutual
     _∙_ : Var → TermLabel → Term           -- field selection
     _⊡_ : Var → Var → Term                 -- application
     let'_in'_ : Term → Term → Term         -- let-binding
-    lettype_in'_ : Type → Term → Term      -- type binding
 
   data Val : Set where
     new : Type → List Defn → Val           -- new object definitions
@@ -120,7 +119,6 @@ mutual
   liftTerm f (a ∙ b) = f a ∙ b
   liftTerm f (a ⊡ b) = f a ⊡ f b
   liftTerm f (let' t1 in' t2) = let' (liftTerm f t1) in' (liftTerm f t2)
-  liftTerm f (lettype τ in' t) = lettype (liftType f τ) in' (liftTerm f t)
 
   liftVal : (Var → Var) → Val → Val
   liftVal f (ƛ τ e) = ƛ τ (liftTerm f e)
@@ -177,7 +175,6 @@ mutual
   _/Term_ f (a ∙ b) = a ∙ b
   _/Term_ f (a ⊡ b) = a ⊡ b
   _/Term_ f (let' t1 in' t2) = let' (_/Term_ f t1) in' (_/Term_ f t2)
-  _/Term_ f (lettype τ in' t) = lettype (_/Type_ f τ) in' (_/Term_ f t)
 
   _/Val_ : (Var → Type) → Val → Val
   _/Val_ f (ƛ τ e) = ƛ τ (_/Term_ f e)
