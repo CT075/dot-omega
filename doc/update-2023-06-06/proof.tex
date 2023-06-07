@@ -126,9 +126,9 @@ We also make use of the following lemmas:
 \begin{lemma}[Type Substitution]\label{lemma:typesubst}
   For inert contexts $\Gamma$,
   \begin{itemize}
-    \item $\Gamma, X: S(A:J) \vdash T : K$ implies
+    \item $\Gamma, X: \Sing{A}{J} \vdash T : K$ implies
       $\Gamma \vdash \subst{T}{X}{A} : \subst{K}{X}{A}$
-    \item $\Gamma, X: S(A:J) \vdash T_1 \le T_2 : K$ implies
+    \item $\Gamma, X: \Sing{A}{J} \vdash T_1 \le T_2 : K$ implies
       $\Gamma \vdash \subst{T_1}{X}{A} \le \subst{T_2}{X}{A} : \subst{K}{X}{A}$
   \end{itemize}
 \end{lemma}
@@ -154,15 +154,100 @@ rules to begin with.}.
 We define our logical relation as follows:
 \begin{align*}
   \KDenot{\interval{S}{U}} &=& \{ \langle \Gamma, \tau \rangle :
+    \tau\ \text{whnf} \land
     \Gamma \vdash_\# S \le \tau \le U : \TyKd \} \\
   \KDenot{\KDepArr{X}{J}{K}} &=& \{ \langle \Gamma, \lambda(X:J).A \rangle :
-    \forall B \in \KDenot{J} .
-    \langle (\Gamma, X:S(B:K)), A \rangle \in \KDenotE{K} \} \\
+    \forall B \in \KDenotE{J} .
+    \langle (\Gamma, X:\Sing{B}{J}), A \rangle \in \KDenotE{K} \} \\
   \KDenotE{K} &=& \{ \langle \Gamma, A \rangle :
     \exists V .
     V\ \text{whnf} \land
     \Gamma \vdash_\# A == V : K \}
 \end{align*}
+
+In a standard termination relation featuring a variable heap $H$, there is
+typically a secondary consistency premise $\Gamma \vDash H$ stating that
+$\Gamma(x) = T$ implies $H(x) \in \KDenot{T}$. Similarly, we need a side
+condition that, if $\Gamma(X) = \Sing{A}{K}$, then $\langle \Gamma, A \rangle
+\in \KDenotE{\Sing{A}{K}}$, which we will write as $\Gamma\ store$.
+
+We also make use of the following structural lemmas:
+\begin{lemma}[Relation Inversion]\label{lemma:inv}
+  \begin{mathpar}
+    \inferrule*
+      {\langle \Gamma, A \rangle \in \KDenotE{K}}
+      {\Gamma \vdash_\# A : K}
+  \end{mathpar}
+\end{lemma}
+\begin{proof}
+  Falls out of $\Gamma \vdash_\# A == \tau : K$.
+\end{proof}
+
+\begin{lemma}[Relation Substitution]\label{lemma:rel-subst}
+  If $\langle (\Gamma, X:\Sing{B}{J}), A \rangle \in \KDenotE{K}$, then
+  $\langle \Gamma, \subst{A}{X}{B} \in \subst{K}{X}{B} \rangle$.
+\end{lemma}
+\begin{proof}
+  \textcolor{red}{Actually, this feels a little suspect. It seems like it must
+  be true, but my attempts to prove it ends up being circular with the main
+  theorem. I think there may be some termination measure I can use that is
+  preserved by kind substitution.}
+\end{proof}
+
+At last, the strong normalization theorem, then, is as follows:
+
+\begin{theorem}[Weak-head normalization of types]
+  \begin{mathpar}
+    \inferrule*
+      {\Gamma \vdash_\# A : K \and K\ store}
+      {\langle \Gamma, A \rangle \in \KDenotE{K}}
+  \end{mathpar}
+\end{theorem}
+\begin{proof}
+  By induction on the derivation:
+
+  \begin{itemize}
+    \item Case \textsc{K-Var-\#}: By the store property.
+
+    \item Case \textsc{K-App-\#}:
+
+      The relevant premises are $\Gamma \vdash_\# A: \KDepArr{X}{J}{K}$ and
+      $\Gamma \vdash_\# B: J$. By the inductive hypotheses, we have that
+      there exist some $J'$, $A'$ such that $A = \lambda (X:J').A'$ and
+      for all $B' \in \KDenotE{J}$, $\langle (\Gamma, X:\Sing{B'}{J}), A'
+      \rangle \in \KDenotE{K}$. Instantiating with $B$ gives $\langle (\Gamma,
+      X:\Sing{B}{J}), A' \rangle \in \KDenotE{K}$. By Lemma \ref{lemma:inv}, we
+      get that $\Gamma, X:\Sing{B}{J} \vdash_\# A' \in K$, providing the
+      necessary premise for the \textsc{ST-$\beta$} rules, giving
+      $\Gamma \vdash_\# A\ B == \subst{A'}{X}{B} : \subst{K}{X}{B}$. Finally,
+      \ref{lemma:rel-subst} and transitivity of type equality gives
+      $\langle \Gamma, A\ B \rangle \in \KDenotE{\subst{K}{X}{B}}$.
+
+    \item Case \textsc{K-Abs-\#}:
+
+      The relevant premise is $\Gamma, X:J \vdash A : K$. Note that we cannot
+      use this as an inductive hypothesis directly, as it is not tight.
+      Instead, let $B$ be such that $\langle \Gamma, B \rangle \in \KDenotE{J}$.
+      By Lemma \ref{lemma:inv}, we have $\Gamma \vdash_\# B : J$ which can be
+      weakened back to full DOT typing, giving $\Gamma \vdash B : J$. By
+      narrowing on the variable $X$, we have $\Gamma, X:\Sing{B}{J} \vdash
+      A : K$. Note that $\Gamma, X:\Sing{B}{J}$ is a store. Stores are inert,
+      so we can convert back to tight typing to get $\Gamma, X:\Sing{B}{J}
+      \vdash_\# A : K$. \emph{Now} we cite the inductive hypothesis to get
+      $\langle (\Gamma, X:\Sing{B}{J}), A \rangle \in \KDenotE{K}$, as
+      desired. This is well-founded because $K$ is syntactically smaller than
+      $\KDepArr{X}{J}{K}$.
+
+    \item Case \textsc{K-Sing-\#}:
+
+      The premise is $\Gamma \vdash_\# A : \interval{S}{U}$. By the inductive
+      hypothesis, we get a whnf $\tau$ such that $\Gamma \vdash_\# A == \tau :
+      \interval{S}{U}$. \textcolor{red}{The definition of the relation requires
+      showing $\Gamma \vdash_\# A \le \tau \le A: \TyKd$. This is not obviously
+      true, but I think it is because proper types can not bind any "new"
+      variables that aren't already reflected in $\Gamma$.}
+  \end{itemize}
+\end{proof}
 
 \newpage
 \appendix
@@ -344,7 +429,7 @@ necessary.
       {\Gamma \vdash \objval{val}{\ell}{e} : \objtyp{val}{\ell}{\rho}} \and
     \inferrule*[right=Ty-Def-Typ]
       {\Gamma \vdash \tau : K}
-      {\Gamma \vdash \objval{type}{M}{A} : \objtyp{type}{M}{S(A:K)}}
+      {\Gamma \vdash \objval{type}{M}{A} : \objtyp{type}{M}{\Sing{A}{K}}}
   \end{mathpar}
   \caption{Type assignment}
 \end{figure}
@@ -421,8 +506,8 @@ to general typing.
       {\Gamma \vdash_\# \iskd{K}}
       {\Gamma \vdash_\# \objtyp{type}{M}{K} : *} \and
     \inferrule*[right=K-Typ-Mem-\#]
-      {\Gamma \vdash_! x : \objtyp{type}{M}{S(A:K)}}
-      {\Gamma \vdash_\# x.M : S(A:K)} \and
+      {\Gamma \vdash_! x : \objtyp{type}{M}{Sing{A}{K}}}
+      {\Gamma \vdash_\# x.M : Sing{A}{K}} \and
     \inferrule*[right=K-Rec-\#]
       {\Gamma, x : \tau \vdash \tau : K}
       {\Gamma \vdash_\# \mu(x . \tau) : K} \and
@@ -459,12 +544,12 @@ to general typing.
       {\Gamma \vdash_\# \objtyp{type}{M}{J} \le \objtyp{type}{M}{K} : \TyKd}\and
     \inferrule*[right=ST-$\beta_1$-\#]
       {\Gamma \vdash_\# B : J \and
-       \Gamma, Z: S(B:J) \vdash_\# A : K}
+       \Gamma, Z: \Sing{B}{J} \vdash_\# A : K}
       {\Gamma \vdash_\# (\lambda (Z: J).A)\ B \le \subst{A}{Z}{B} : \subst{K}{Z}{B}}
       \and
     \inferrule*[right=ST-$\beta_2$-\#]
       {\Gamma \vdash_\# B : J \and
-       \Gamma, Z: S(B:J) \vdash_\# A : K}
+       \Gamma, Z: \Sing{B}{J} \vdash_\# A : K}
       {\Gamma \vdash_\# \subst{A}{Z}{B} \le (\lambda (Z: J).A)\ B : \subst{K}{Z}{B}}
     \inferrule*[right=ST-bnd$_1$-\#]
       {\Gamma \vdash_\# A : \interval{S}{U}}
@@ -523,7 +608,7 @@ to general typing.
       {\Gamma \vdash_\# \objval{val}{\ell}{e} : \objtyp{val}{\ell}{\rho}} \and
     \inferrule*[right=Ty-Def-Typ-\#]
       {\Gamma \vdash_\# \tau : K}
-      {\Gamma \vdash_\# \objval{type}{M}{A} : \objtyp{type}{M}{S(A:K)}}
+      {\Gamma \vdash_\# \objval{type}{M}{A} : \objtyp{type}{M}{Sing{A}{K}}}
   \end{mathpar}
   \caption{Type assignment}
 \end{figure}
