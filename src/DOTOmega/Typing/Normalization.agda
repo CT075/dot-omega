@@ -20,6 +20,7 @@ open import Induction.Extensions
 
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing TypeL TermL
+open import DOTOmega.Typing.Inertness TypeL TermL
 open import DOTOmega.Typing.Tight TypeL TermL
 open import DOTOmega.Typing.Tight.Properties TypeL TermL
 
