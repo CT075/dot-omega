@@ -153,7 +153,7 @@ mutual
       Γ ⊢tm V(ƛ τ e) ∈ ℿ τ ρ
     ty-ℿ-elim : ∀{x z τ ρ} →
       Γ ⊢tm ` x ∈ ℿ τ ρ → Γ ⊢tm ` z ∈ τ →
-      Γ ⊢tm x ⊡ z ∈ bindType (` z) ρ
+      Γ ⊢tm x ⊡ z ∈ plugType z ρ
     ty-new-intro : ∀{τ x ds} →
       Γ & x ~ Ty (openType x τ) ⊢defns (map (openDefn x) ds) ∈ (openType x τ) →
       Γ ⊢tm V(new τ ds) ∈ μ τ
@@ -165,11 +165,11 @@ mutual
       Γ & x ~ Ty τ ⊢tm openTerm x e₂ ∈ ρ →
       Γ ⊢tm (let' e₁ in' e₂) ∈ ρ
     ty-rec-intro : ∀{x τ} →
-      Γ ⊢tm ` x ∈ bindType (` x) τ →
+      Γ ⊢tm ` x ∈ plugType x τ →
       Γ ⊢tm ` x ∈ μ τ
     ty-rec-elim : ∀{x τ} →
       Γ ⊢tm ` x ∈ μ τ →
-      Γ ⊢tm ` x ∈ bindType (` x) τ
+      Γ ⊢tm ` x ∈ plugType x τ
     ty-and-intro : ∀{x τ₁ τ₂} →
       Γ ⊢tm ` x ∈ τ₁ → Γ ⊢tm ` x ∈ τ₂ →
       Γ ⊢tm ` x ∈ τ₁ ∧ τ₂
