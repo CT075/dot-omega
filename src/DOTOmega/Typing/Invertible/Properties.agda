@@ -9,6 +9,7 @@ module DOTOmega.Typing.Invertible.Properties
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing.Tight TypeL TermL
 open import DOTOmega.Typing.Tight.Properties TypeL TermL
+open import DOTOmega.Typing.Inertness TypeL TermL
 open import DOTOmega.Typing.Precise TypeL TermL
 open import DOTOmega.Typing.Invertible TypeL TermL
 
@@ -34,7 +35,7 @@ postulate
 ⊢#→⊢##-var {Γ} {x} Γinert (ty-rec-elim-# {τ = τ} Γ⊢x∈τ) = foo
   where
     postulate
-      foo : Γ ⊢##var x ∈ bindType (` x) τ
+      foo : Γ ⊢##var x ∈ plugType x τ
 ⊢#→⊢##-var Γinert (ty-and-intro-# Γ⊢x∈τ₁ Γ⊢x∈τ₂) =
   ty-intersect-##
     (⊢#→⊢##-var Γinert Γ⊢x∈τ₁)

@@ -18,6 +18,7 @@ open import Data.Context
 infix 4 _⊢!val_∈_
 infix 4 _⊢!var_∈_⟫_
 
+-- TODO: what if τ is a beta-redex?
 data _⊢!var_∈_⟫_ (Γ : Ctx VarFact) : Var → Type → Type → Set where
   var-! : ∀{x τ} → Γ [ x ]⊢> Ty τ → Γ ⊢!var Free x ∈ τ ⟫ τ
   rec-e-! : ∀{x τ ρ xρ} →

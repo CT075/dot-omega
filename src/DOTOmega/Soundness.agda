@@ -18,6 +18,7 @@ open import Data.Context renaming (E to E_)
 open import DOTOmega.Syntax TypeL TermL renaming (_∈_ to _∈def_)
 open import DOTOmega.Typing TypeL TermL
 open import DOTOmega.Typing.Properties TypeL TermL
+open import DOTOmega.Typing.Inertness TypeL TermL
 open import DOTOmega.Typing.Tight TypeL TermL
 open import DOTOmega.Typing.Tight.Properties TypeL TermL
 open import DOTOmega.Typing.Precise TypeL TermL

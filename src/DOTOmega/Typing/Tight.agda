@@ -11,6 +11,7 @@ open import Data.List using (List; []; _∷_; map)
 
 open import DOTOmega.Syntax TypeL TermL
 open import DOTOmega.Typing TypeL TermL
+open import DOTOmega.Typing.Inertness TypeL TermL
 open import DOTOmega.Typing.Precise TypeL TermL
 
 open import Data.Var
@@ -22,10 +23,6 @@ infix 4 _⊢#kd_≤_ _⊢#ty_≤_∈_
 infix 4 _⊢#ty_==_∈_
 
 infix 4 _⊢#tm_∈_
-
-S[_∈_] : Type → Kind → Kind
-S[ τ ∈ A ∙∙ B ] = τ ∙∙ τ
-S[ f ∈ ℿ J K ] = ℿ J (S[ wkType f ⊡ `(Bound zero) ∈ K ])
 
 mutual
   data _ctx-# : Context → Set where
@@ -142,7 +139,7 @@ mutual
       Γ ⊢#tm V(ƛ τ e) ∈ ℿ τ ρ
     ty-ℿ-elim-# : ∀{x z τ ρ} →
       Γ ⊢#tm ` x ∈ ℿ τ ρ → Γ ⊢#tm ` z ∈ τ →
-      Γ ⊢#tm x ⊡ z ∈ bindType (` z) ρ
+      Γ ⊢#tm x ⊡ z ∈ plugType z ρ
     ty-new-intro-# : ∀{τ x ds} →
       Γ & x ~ Ty (openType x τ) ⊢defns (map (openDefn x) ds) ∈ (openType x τ) →
       Γ ⊢#tm V(new τ ds) ∈ μ τ
@@ -154,11 +151,11 @@ mutual
       Γ & x ~ Ty τ ⊢tm (openTerm x e₂) ∈ ρ →
       Γ ⊢#tm (let' e₁ in' e₂) ∈ ρ
     ty-rec-intro-# : ∀{x τ} →
-      Γ ⊢#tm ` x ∈ bindType (` x) τ →
+      Γ ⊢#tm ` x ∈ plugType x τ →
       Γ ⊢#tm ` x ∈ μ τ
     ty-rec-elim-# : ∀{x τ} →
       Γ ⊢#tm ` x ∈ μ τ →
-      Γ ⊢#tm ` x ∈ bindType (` x) τ
+      Γ ⊢#tm ` x ∈ plugType x τ
     ty-and-intro-# : ∀{x τ₁ τ₂} →
       Γ ⊢#tm ` x ∈ τ₁ → Γ ⊢#tm ` x ∈ τ₂ →
       Γ ⊢#tm ` x ∈ τ₁ ∧ τ₂

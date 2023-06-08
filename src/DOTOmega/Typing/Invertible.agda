@@ -43,7 +43,7 @@ data _⊢##var_∈_ (Γ : Ctx VarFact) : Var → Type → Set where
     Γ ⊢!var y ∈ τ ⟫ [ typ M ∶ A ∙∙ A ] →
     Γ ⊢##var x ∈ y ∙ M
   ty-rec-i-## : ∀{x τ} →
-    Γ ⊢##var x ∈ bindType (` x) τ →
+    Γ ⊢##var x ∈ plugType x τ →
     Γ ⊢##var x ∈ μ τ
   ty-top-## : ∀{x τ} →
     Γ ⊢##var x ∈ τ →
