@@ -13,8 +13,35 @@ open import DOTOmega.Typing.Inertness TypeL TermL
 open import DOTOmega.Typing.Precise TypeL TermL
 open import DOTOmega.Typing.Invertible TypeL TermL
 
+{-
+-- proof: by induction on [Γ ⊢#ty A ≤ B]
+invertible-typing-closure-tight-var : ∀{Γ x A B} →
+  Γ ⊢##var x ∈ A →
+  Γ ⊢#ty A ≤ B ∈ ✶ →
+  Γ ⊢##var x ∈ B
+invertible-typing-closure-tight-var Γ⊢##x∈A Γ⊢#A≤B = go Γ⊢##x∈A (to-view Γ⊢#A≤B)
+  where
+    go : ∀{Γ x A B} → Γ ⊢##var x ∈ A → Γ sees A ≤ B ∈ ✶ → Γ ⊢##var x ∈ B
+    go Γ⊢##x∈A (view-st-refl-# Γ⊢#A∈K) = Γ⊢##x∈A
+    go Γ⊢##x∈A (view-st-trans-# Γ⊢#A≤B∈✶ Γ⊢#B≤C∈✶) =
+      go (go Γ⊢##x∈A Γ⊢#A≤B∈✶) Γ⊢#B≤C∈✶
+    go Γ⊢##x∈A (view-st-top-# Γ⊢#A∈S∙∙U) = ty-top-## Γ⊢##x∈A
+    -- TODO: need inertness here
+    go {A = ⊥} (ty-precise-## Γ⊢!x∈⊥⟫⊥) Γ⊢#⊥≤A = {! -l -c !}
+    go Γ⊢##x∈A (view-st-and-l₁-# x) = {! !}
+    go Γ⊢##x∈A (view-st-and-l₂-# x) = {! !}
+    go Γ⊢##x∈A (view-st-and₂-# Γ⊢#A≤B∈✶ Γ⊢#A≤B∈✶₁) = {! !}
+    go Γ⊢##x∈A (view-st-abs-# Γ⊢#A≤B∈✶ x) = {! !}
+    go Γ⊢##x∈A (view-st-field-# Γ⊢#A≤B∈✶) = {! !}
+    go Γ⊢##x∈A (view-st-typ-# x) = {! !}
+    go Γ⊢##x∈A (view-st-β₁-# x x₁ x₂ x₃) = {! !}
+    go Γ⊢##x∈A (view-st-β₂-# x x₁ x₂ x₃) = {! !}
+    go Γ⊢##x∈A (view-st-app-# Γ⊢#A≤B∈✶ x x₁) = {! !}
+    go Γ⊢##x∈A (view-st-bnd₁-# x) = {! !}
+    go Γ⊢##x∈A (view-st-bnd₂-# x) = {! !}
+-}
+
 postulate
-  -- proof: by induction on [Γ ⊢#ty A ≤ B]
   invertible-typing-closure-tight-var : ∀{Γ x A B} →
     Γ ⊢##var x ∈ A →
     Γ ⊢#ty A ≤ B ∈ ✶ →
@@ -32,8 +59,11 @@ postulate
 ⊢#→⊢##-var Γinert (ty-rec-intro-# Γ⊢x∈xτ) =
   ty-rec-i-## (⊢#→⊢##-var Γinert Γ⊢x∈xτ)
 -- TODO: this
-⊢#→⊢##-var {Γ} {x} Γinert (ty-rec-elim-# {τ = τ} Γ⊢x∈τ) = foo
+⊢#→⊢##-var {Γ} {x} Γinert (ty-rec-elim-# {τ = τ} Γ⊢#x∈μτ) = foo
   where
+    Γ⊢##x∈τ : Γ ⊢##var x ∈ μ τ
+    Γ⊢##x∈τ = ⊢#→⊢##-var Γinert Γ⊢#x∈μτ
+
     postulate
       foo : Γ ⊢##var x ∈ plugType x τ
 ⊢#→⊢##-var Γinert (ty-and-intro-# Γ⊢x∈τ₁ Γ⊢x∈τ₂) =

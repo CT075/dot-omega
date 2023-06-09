@@ -48,6 +48,12 @@ data _⊢##var_∈_ (Γ : Ctx VarFact) : Var → Type → Set where
   ty-top-## : ∀{x τ} →
     Γ ⊢##var x ∈ τ →
     Γ ⊢##var x ∈ ⊤
+  {- I don't think this will work
+  ty-equiv-## : ∀{x S U} →
+    Γ ⊢##var x ∈ S →
+    Γ ⊢#ty S == U ∈ ✶ →
+    Γ ⊢##var x ∈ U
+  -}
 
 data _⊢##val_∈_ (Γ : Ctx VarFact) : Val → Type → Set where
   val-ty-## : ∀{v τ} →
@@ -69,3 +75,7 @@ data _⊢##val_∈_ (Γ : Ctx VarFact) : Val → Type → Set where
   val-top-## : ∀{v τ} →
     Γ ⊢##val v ∈ τ →
     Γ ⊢##val v ∈ ⊤
+  val-equiv-## : ∀{v S U} →
+    Γ ⊢##val v ∈ S →
+    Γ ⊢#ty S == U ∈ ✶ →
+    Γ ⊢##val v ∈ U
