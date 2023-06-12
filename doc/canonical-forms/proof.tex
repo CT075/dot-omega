@@ -1,0 +1,537 @@
+\documentclass[a4paper, 10pt]{article}
+\usepackage{amssymb, amsmath, amsthm}
+\usepackage[backend=bibtex,natbib=true]{biblatex}
+\usepackage{enumitem}
+\usepackage{mathrsfs}
+\usepackage{parskip}
+\usepackage{mathpartir}
+\usepackage{bussproofs}
+\usepackage{stmaryrd}
+\usepackage{appendix}
+\usepackage{datetime}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{pifont}
+\usepackage[iso, english]{isodate}
+\usepackage[section]{placeins}
+
+\newcommand{\xmark}{\ding{55}}
+
+\newcommand{\DOTw}{\ensuremath{DOT^\omega}}
+\newcommand{\Fwint}{\ensuremath{F^\omega_{..}}}
+\newcommand{\Dsub}{\ensuremath{D_{<:}}}
+\newcommand{\interval}[3][]{#2 .._{#1} #3}
+\newcommand{\isctx}[1]{#1\ \texttt{ctx}}
+\newcommand{\istctx}[1]{#1\ \texttt{ctx}_\#}
+\newcommand{\iskd}[1]{#1\ \texttt{kd}}
+\newcommand{\TyKd}{*}
+\newcommand{\KDepArr}[3]{\Pi(#1:#2).#3}
+\newcommand{\TDepArr}[3]{(#1:#2) \rightarrow #3}
+\newcommand{\subst}[3]{#1[#2/#3]}
+\newcommand{\objtyp}[3]{\{ \textbf{#1}\ #2 : #3 \}}
+\newcommand{\objval}[3]{\{ \textbf{#1}\ #2 = #3 \}}
+\newcommand{\termlet}[3]{\text{let }#1 = #2\text{ in }#3}
+\newcommand{\envlet}[2]{\text{let }#1 = #2}
+\newcommand{\dom}[1]{\textrm{domain}(#1)}
+\newcommand{\KDenot}[1]{\llbracket #1 \rrbracket}
+\newcommand{\KDenotE}[1]{\mathcal{E} \llbracket #1 \rrbracket}
+\newcommand{\Sing}[2]{Sing_{#2}(#1)}
+\newcommand{\invdash}{\vdash_{\#\#}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}
+\newtheorem{property}{Property}
+
+\bibliography{paper}
+
+\setlength{\parindent}{0cm}
+
+\title{Rethinking inertness}
+\author{Cameron Wong}
+
+\begin{document}
+\maketitle
+
+\setlength{\parskip}{\baselineskip}
+
+\section{Last time}
+
+\section{Canonical forms for $\DOTw$}
+
+\newpage
+\appendix
+
+\section{$\DOTw$ Full rules}\label{appendix:dotw-rules}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*{\phantom{}}{\isctx{\varnothing}} \and
+    \inferrule*{\isctx{\Gamma}\and\Gamma \vdash \iskd{K}}
+      {\isctx{\Gamma, X:K}} \and
+    \inferrule*{\isctx{\Gamma}\and\Gamma \vdash A : \TyKd}
+      {\isctx{\Gamma, x:A}} \and
+  \end{mathpar}
+  \caption{Context formation}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Wf-Intv]
+      {\Gamma \vdash S : \TyKd \and \Gamma \vdash U : \TyKd}
+      {\Gamma \vdash \iskd{\interval{S}{U}}} \and
+    \inferrule*[right=Wf-DArr]
+      {\Gamma \vdash \iskd{J} \and \Gamma, X:J \vdash \iskd{K}}
+      {\Gamma \vdash \iskd{\KDepArr{X}{J}{K}}}
+  \end{mathpar}
+  \caption{Kind formation}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=SK-Intv]
+      {\Gamma \vdash S_2 \le S_1:\TyKd \and \Gamma \vdash U_1 \le U_2:\TyKd}
+      {\Gamma \vdash \interval{S_1}{U_1} \le \interval{S_2}{U_2}} \and
+    \inferrule*[right=SK-DArr]
+      {\Gamma \vdash \iskd{\KDepArr{X}{J_1}{K_1}} \and
+       \Gamma \vdash J_2 \le J_1 \and
+       \Gamma, X:J_2 \vdash K_1 \le K_2}
+      {\Gamma \vdash \KDepArr{X}{J_1}{K_1} \le \KDepArr{X}{J_2}{K_2}}
+  \end{mathpar}
+  \caption{Subkinding}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=K-Var]{\isctx{\Gamma, X:K}}{\Gamma, X:K \vdash X:K} \and
+    \inferrule*[right=K-Top]{\phantom{}}{\Gamma \vdash \top : \TyKd} \and
+    \inferrule*[right=K-Bot]{\phantom{}}{\Gamma \vdash \bot : \TyKd} \and
+    \inferrule*[right=K-Sing]{\Gamma \vdash A : \interval{S}{U}}
+      {\Gamma \vdash A : \interval{A}{A}} \and
+    \inferrule*[right=K-Arr]
+      {\Gamma \vdash A : \TyKd \and \Gamma, x : A \vdash B : \TyKd}
+      {\Gamma \vdash \TDepArr{x}{A}{B} : \TyKd} \and
+    \inferrule*[right=K-Abs]
+      {\Gamma \vdash \iskd{J} \and \Gamma, X:J \vdash A : K \and
+       \Gamma, X:J \vdash \iskd{K}}
+      {\Gamma \vdash \lambda(X:J).A : \KDepArr{X}{J}{K}} \and
+    \inferrule*[right=K-App]
+      {\Gamma \vdash A : \KDepArr{X}{J}{K} \and \Gamma \vdash B : J \and
+       \Gamma, X:J \vdash \iskd{K} \and \Gamma \vdash \iskd{\subst{K}{B}{X}}}
+      {\Gamma \vdash A\ B : \subst{K}{B}{X}} \and
+    \inferrule*[right=K-Intersect]
+      {\Gamma \vdash A : \interval{S_1}{U_1} \and
+       \Gamma \vdash B : \interval{S_2}{U_2}}
+      {\Gamma \vdash A \land B : \interval{S_1 \lor S_2}{U_1 \land U_2}} \and
+    \inferrule*[right=K-Field]
+      {\Gamma \vdash A : \interval{S}{U}}
+      {\Gamma \vdash \objtyp{val}{\ell}{A} : *} \and
+    \inferrule*[right=K-Typ]
+      {\Gamma \vdash \iskd{K}}
+      {\Gamma \vdash \objtyp{type}{M}{K} : *} \and
+    \inferrule*[right=K-Typ-Mem]
+      {\Gamma \vdash x : \objtyp{type}{M}{K}}
+      {\Gamma \vdash x.M : K} \and
+    \inferrule*[right=K-Rec]
+      {\Gamma, x : \tau \vdash \tau : K}
+      {\Gamma \vdash \mu(x . \tau) : K} \and
+    \inferrule*[right=K-Sub]
+      {\Gamma \vdash A:J \and \Gamma \vdash J \le K}{\Gamma \vdash A:K}
+  \end{mathpar}
+  \caption{Kind assignment}
+\end{figure}
+\clearpage
+
+Note that \textsc{K-Intersect} rules refers to the union type $S_1 \lor S_2$,
+despite no such construct being present in the language as a whole. I am
+currently investigating whether the explicit addition of this construct is
+necessary.
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=ST-refl]{\Gamma \vdash A : K}
+      {\Gamma \vdash A \le A : K} \and
+    \inferrule*[right=ST-trans]
+      {\Gamma \vdash A \le B : K \and
+       \Gamma \vdash B \le C : K}
+      {\Gamma \vdash A \le C : K} \and
+    \inferrule*[right=ST-top]{\Gamma \vdash A : \interval{S}{U}}
+      {\Gamma \vdash A \le \top : \TyKd} \and
+    \inferrule*[right=ST-bot]{\Gamma \vdash A : \interval{S}{U}}
+      {\Gamma \vdash \bot \le A : \TyKd} \and
+    \inferrule*[right=ST-and-$\ell_1$]
+      {\Gamma \vdash A \land B : K}{\Gamma \vdash A \land B \le A : K} \and
+    \inferrule*[right=ST-and-$\ell_2$]
+      {\Gamma \vdash A \land B : K}{\Gamma \vdash A \land B \le B : K} \and
+    \inferrule*[right=ST-and-r]
+      {\Gamma \vdash S \le A : K \and \Gamma \vdash S \le B : K}
+      {\Gamma \vdash S \le A \land B : K} \and
+    \inferrule*[right=ST-field]{\Gamma \vdash A \le B : \TyKd}
+      {\Gamma \vdash \objtyp{val}{\ell}{A} \le \objtyp{val}{\ell}{B} : \TyKd}
+      \and
+    \inferrule*[right=ST-typ]
+      {\Gamma \vdash J \le K}
+      {\Gamma \vdash \objtyp{type}{M}{J} \le \objtyp{type}{M}{K} : \TyKd}\and
+    \inferrule*[right=ST-$\beta_1$]
+      {\Gamma Z : J \vdash A : K \and
+       \Gamma \vdash B : J}
+      {\Gamma \vdash (\lambda (Z: J).A)\ B \le \subst{A}{Z}{B} : \subst{K}{Z}{B}}
+      \and
+    \inferrule*[right=ST-$\beta_2$]
+      {\Gamma Z : J \vdash A : K \and
+       \Gamma \vdash B : J}
+      {\Gamma \vdash \subst{A}{Z}{B} \le (\lambda (Z: J).A)\ B : \subst{K}{Z}{B}}
+      \and
+    \inferrule*[right=ST-bnd$_1$]
+      {\Gamma \vdash A : \interval{S}{U}}
+      {\Gamma \vdash S \le A : *}
+      \and
+    \inferrule*[right=ST-bnd$_2$]
+      {\Gamma \vdash A : \interval{S}{U}}
+      {\Gamma \vdash A \le U : *}
+  \end{mathpar}
+  \caption{Subtyping}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Eq]
+      {\Gamma \vdash A \le B : K \and \Gamma \vdash B \le A : K}
+      {\Gamma \vdash A = B : K}
+  \end{mathpar}
+  \caption{Type equality}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Ty-Var]
+      {\isctx{\Gamma, x: \tau}}
+      {\Gamma, x:\tau \vdash x: \tau} \and
+    \inferrule*[right=Ty-Let]
+      {\Gamma \vdash e_1: \tau \and \Gamma, x:\tau \vdash e_2 : \rho \and x \not\in fv(\rho)}
+      {\Gamma \vdash \termlet{x}{e_1}{e_2} : \rho} \and
+    \inferrule*[right=Ty-Fun-I]
+      {\Gamma, x: \tau \vdash e: \rho}
+      {\Gamma \vdash \lambda(x:\tau).e : \TDepArr{x}{\tau}{\rho}} \and
+    \inferrule*[right=Ty-Fun-E]
+      {\Gamma \vdash x : \TDepArr{z}{\tau}{\rho} \and \Gamma \vdash y : \tau}
+      {\Gamma \vdash x\ y : \subst{\rho}{z}{y}} \and
+    \inferrule*[right=Ty-$\mu$-I]
+      {\Gamma \vdash x: \tau}
+      {\Gamma \vdash x: \mu(x: \tau)} \and
+    \inferrule*[right=Ty-$\mu$-E]
+      {\Gamma \vdash x: \mu(z: \tau)}
+      {\Gamma \vdash x: \subst{\tau}{z}{x}} \and
+    \inferrule*[right=Ty-Rec-I]
+      {\Gamma, x: \tau \vdash d: \tau}
+      {\Gamma \vdash \nu(x: \tau)d : \mu(x:\tau)} \and
+    \inferrule*[right=Ty-Rec-E]
+      {\Gamma, x: \objtyp{val}{\ell}{\tau}}
+      {\Gamma \vdash x.\ell : \tau} \and
+    \inferrule*[right=Ty-And-I]
+      {\Gamma \vdash x: \tau_1 \and \Gamma \vdash x: \tau_2}
+      {\Gamma \vdash x: \tau_1 \land \tau_2} \and
+    \inferrule*[right=Ty-Sub]
+      {\Gamma \vdash e: \tau_1 \and \Gamma \vdash \tau_1 \le \tau_2 : *}
+      {\Gamma \vdash e: \tau_2} \and
+    \inferrule*[right=Ty-Def-Trm]
+      {\Gamma \vdash e: \rho}
+      {\Gamma \vdash \objval{val}{\ell}{e} : \objtyp{val}{\ell}{\rho}} \and
+    \inferrule*[right=Ty-Def-Typ]
+      {\Gamma \vdash \tau : K}
+      {\Gamma \vdash \objval{type}{M}{A} : \objtyp{type}{M}{\Sing{A}{K}}}
+  \end{mathpar}
+  \caption{Type assignment}
+\end{figure}
+
+\section{Tight typing rules}\label{appendix:tight-rules}
+
+In most cases, tight typing is merely forwarded to the premises. In any rule
+that extends the context with possibly-untrusted bounds, tight typing reverts
+to general typing.
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*{\phantom{}}{\istctx{\varnothing}} \and
+    \inferrule*{\istctx{\Gamma}\and\Gamma \vdash_\# \iskd{K}}
+      {\isctx{\Gamma, X:K}} \and
+    \inferrule*{\istctx{\Gamma}\and\Gamma \vdash_\# A : \TyKd}
+      {\isctx{\Gamma, x:A}} \and
+  \end{mathpar}
+  \caption{Context formation}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Wf-Int-\#]
+      {\Gamma \vdash_\# S : \TyKd \and \Gamma \vdash_\# U : \TyKd}
+      {\Gamma \vdash_\# \iskd{\interval{S}{U}}} \and
+    \inferrule*[right=Wf-DArr-\#]
+      {\Gamma \vdash_\# \iskd{J} \and \Gamma, X:J \vdash_\# \iskd{K}}
+      {\Gamma \vdash_\# \iskd{\KDepArr{X}{J}{K}}}
+  \end{mathpar}
+  \caption{Kind formation}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=SK-Intv-\#]
+      {\Gamma \vdash_\# S_2 \le S_1:\TyKd \and \Gamma \vdash_\# U_1 \le U_2:\TyKd}
+      {\Gamma \vdash_\# \interval{S_1}{U_1} \le \interval{S_2}{U_2}} \and
+    \inferrule*[right=SK-DArr-\#]
+      {\Gamma \vdash_\# \iskd{\KDepArr{X}{J_1}{K_1}} \and
+       \Gamma \vdash_\# J_2 \le J_1 \and
+       \Gamma, X:J_2 \vdash K_1 \le K_2}
+      {\Gamma \vdash_\# \KDepArr{X}{J_1}{K_1} \le \KDepArr{X}{J_2}{K_2}}
+  \end{mathpar}
+  \caption{Subkinding}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=K-Var-\#]{\istctx{\Gamma, X:K}}{\Gamma, X:K \vdash_\# X:K} \and
+    \inferrule*[right=K-Top-\#]{\phantom{}}{\Gamma \vdash_\# \top : \TyKd} \and
+    \inferrule*[right=K-Bot-\#]{\phantom{}}{\Gamma \vdash_\# \bot : \TyKd} \and
+    \inferrule*[right=K-Sing-\#]{\Gamma \vdash_\# A : \interval{S}{U}}
+      {\Gamma \vdash_\# A : \interval{A}{A}} \and
+    \inferrule*[right=K-Arr-\#]
+      {\Gamma \vdash_\# A : \TyKd \and \Gamma, x : A \vdash B : \TyKd}
+      {\Gamma \vdash_\# \TDepArr{x}{A}{B} : \TyKd} \and
+    \inferrule*[right=K-Abs-\#]
+      {\Gamma \vdash_\# \iskd{J} \and \Gamma, X:J \vdash A : K \and
+       \Gamma, X:J \vdash_\# \iskd{K}}
+      {\Gamma \vdash_\# \lambda(X:J).A : \KDepArr{X}{J}{K}} \and
+    \inferrule*[right=K-App-\#]
+      {\Gamma \vdash_\# A : \KDepArr{X}{J}{K} \and \Gamma \vdash_\# B : J \and
+       \Gamma, X:J \vdash \iskd{K} \and \Gamma \vdash_\# \iskd{\subst{K}{B}{X}}}
+      {\Gamma \vdash_\# A\ B : \subst{K}{B}{X}} \and
+    \inferrule*[right=K-Intersect-\#]
+      {\Gamma \vdash_\# A : \interval{S_1}{U_1} \and
+       \Gamma \vdash_\# B : \interval{S_2}{U_2}}
+      {\Gamma \vdash_\# A \land B : \interval{S_1 \lor S_2}{U_1 \land U_2}} \and
+    \inferrule*[right=K-Field-\#]
+      {\Gamma \vdash_\# A : \interval{S}{U}}
+      {\Gamma \vdash_\# \objtyp{val}{\ell}{A} : *} \and
+    \inferrule*[right=K-Typ-\#]
+      {\Gamma \vdash_\# \iskd{K}}
+      {\Gamma \vdash_\# \objtyp{type}{M}{K} : *} \and
+    \inferrule*[right=K-Typ-Mem-\#]
+      {\Gamma \vdash_! x : \objtyp{type}{M}{Sing{A}{K}}}
+      {\Gamma \vdash_\# x.M : Sing{A}{K}} \and
+    \inferrule*[right=K-Rec-\#]
+      {\Gamma, x : \tau \vdash \tau : K}
+      {\Gamma \vdash_\# \mu(x . \tau) : K} \and
+    \inferrule*[right=K-Sub-\#]
+      {\Gamma \vdash_\# A:J \and \Gamma \vdash_\# J \le K}{\Gamma \vdash_\# A:K}
+  \end{mathpar}
+  \caption{Kind assignment}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=ST-refl-\#]{\Gamma \vdash_\# A : K}
+      {\Gamma \vdash_\# A \le A : K} \and
+    \inferrule*[right=ST-trans-\#]
+      {\Gamma \vdash_\# A \le B : K \and
+       \Gamma \vdash_\# B \le C : K}
+      {\Gamma \vdash_\# A \le C : K} \and
+    \inferrule*[right=ST-top-\#]{\Gamma \vdash_\# A : \interval{S}{U}}
+      {\Gamma \vdash_\# A \le \top : \TyKd} \and
+    \inferrule*[right=ST-bot-\#]{\Gamma \vdash_\# A : \interval{S}{U}}
+      {\Gamma \vdash_\# \bot \le A : \TyKd} \and
+    \inferrule*[right=ST-and-$\ell_1$-\#]
+      {\Gamma \vdash_\# A \land B : K}{\Gamma \vdash_\# A \land B \le A : K} \and
+    \inferrule*[right=ST-and-$\ell_2$-\#]
+      {\Gamma \vdash_\# A \land B : K}{\Gamma \vdash_\# A \land B \le B : K} \and
+    \inferrule*[right=ST-and-r-\#]
+      {\Gamma \vdash_\# S \le A : K \and \Gamma \vdash_\# S \le B : K}
+      {\Gamma \vdash_\# S \le A \land B : K} \and
+    \inferrule*[right=ST-field-\#]{\Gamma \vdash_\# A \le B : \TyKd}
+      {\Gamma \vdash_\# \objtyp{val}{\ell}{A} \le \objtyp{val}{\ell}{B} : \TyKd}
+      \and
+    \inferrule*[right=ST-typ-\#]
+      {\Gamma \vdash_\# J \le K}
+      {\Gamma \vdash_\# \objtyp{type}{M}{J} \le \objtyp{type}{M}{K} : \TyKd}\and
+    \inferrule*[right=ST-$\beta_1$-\#]
+      {\Gamma \vdash_\# B : J \and
+       \Gamma, Z: \Sing{B}{J} \vdash_\# A : K}
+      {\Gamma \vdash_\# (\lambda (Z: J).A)\ B \le \subst{A}{Z}{B} : \subst{K}{Z}{B}}
+      \and
+    \inferrule*[right=ST-$\beta_2$-\#]
+      {\Gamma \vdash_\# B : J \and
+       \Gamma, Z: \Sing{B}{J} \vdash_\# A : K}
+      {\Gamma \vdash_\# \subst{A}{Z}{B} \le (\lambda (Z: J).A)\ B : \subst{K}{Z}{B}}
+    \inferrule*[right=ST-bnd$_1$-\#]
+      {\Gamma \vdash_\# A : \interval{S}{U}}
+      {\Gamma \vdash_\# S \le A : *}
+      \and
+    \inferrule*[right=ST-bnd$_2$-\#]
+      {\Gamma \vdash_\# A : \interval{S}{U}}
+      {\Gamma \vdash_\# A \le U : *}
+  \end{mathpar}
+  \caption{Subtyping}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Eq-\#]
+      {\Gamma \vdash_\# A \le B : K \and \Gamma \vdash_\# B \le A : K}
+      {\Gamma \vdash_\# A = B : K}
+  \end{mathpar}
+  \caption{Type equality}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Ty-Var-\#]
+      {\istctx{\Gamma, x: \tau}}
+      {\Gamma, x:\tau \vdash_\# x: \tau} \and
+    \inferrule*[right=Ty-Let-\#]
+      {\Gamma \vdash_\# e_1: \tau \and \Gamma, x:\tau \vdash e_2: \rho \and x \not\in fv(\rho)}
+      {\Gamma \vdash_\# \termlet{x}{e_1}{e_2} : \rho} \and
+    \inferrule*[right=Ty-Fun-I-\#]
+      {\Gamma, x: \tau \vdash e: \rho}
+      {\Gamma \vdash_\# \lambda(x:\tau).e : \TDepArr{x}{\tau}{\rho}} \and
+    \inferrule*[right=Ty-Fun-E-\#]
+      {\Gamma \vdash_\# x : \TDepArr{z}{\tau}{\rho} \and \Gamma \vdash_\# y : \tau}
+      {\Gamma \vdash_\# x\ y : \subst{\rho}{z}{y}} \and
+    \inferrule*[right=Ty-$\mu$-I-\#]
+      {\Gamma \vdash_\# x: \tau}
+      {\Gamma \vdash_\# x: \mu(x: \tau)} \and
+    \inferrule*[right=Ty-$\mu$-E-\#]
+      {\Gamma \vdash_\# x: \mu(z: \tau)}
+      {\Gamma \vdash_\# x: \subst{\tau}{z}{x}} \and
+    \inferrule*[right=Ty-Rec-I-\#]
+      {\Gamma, x: \tau \vdash d: \tau}
+      {\Gamma \vdash_\# \nu(x: \tau)d : \mu(x:\tau)} \and
+    \inferrule*[right=Ty-Rec-E-\#]
+      {\Gamma, x: \objtyp{val}{\ell}{\tau}}
+      {\Gamma \vdash_\# x.\ell : \tau} \and
+    \inferrule*[right=Ty-And-I-\#]
+      {\Gamma \vdash_\# x: \tau_1 \and \Gamma \vdash_\# x: \tau_2}
+      {\Gamma \vdash_\# x: \tau_1 \land \tau_2} \and
+    \inferrule*[right=Ty-Sub-\#]
+      {\Gamma \vdash_\# e: \tau_1 \and \Gamma \vdash_\# \tau_1 \le \tau_2 : *}
+      {\Gamma \vdash_\# e: \tau_2} \and
+    \inferrule*[right=Ty-Def-Trm-\#]
+      {\Gamma \vdash_\# e: \rho}
+      {\Gamma \vdash_\# \objval{val}{\ell}{e} : \objtyp{val}{\ell}{\rho}} \and
+    \inferrule*[right=Ty-Def-Typ-\#]
+      {\Gamma \vdash_\# \tau : K}
+      {\Gamma \vdash_\# \objval{type}{M}{A} : \objtyp{type}{M}{Sing{A}{K}}}
+  \end{mathpar}
+  \caption{Type assignment}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Var-!]{\phantom{}}{\Gamma, x:\tau \vdash_! x:\tau}\and
+    \inferrule*[right=Rec-E-!]{\Gamma \vdash_! x: \mu(z:\tau)}
+      {\Gamma \vdash_! x: \subst{\tau}{z}{x}} \and
+    \inferrule*[right=And$_1$-E-!]
+      {\Gamma \vdash_! x: \tau_1 \land \tau_2}
+      {\Gamma \vdash_! x: \tau_1}\and
+    \inferrule*[right=And$_2$-E-!]
+      {\Gamma \vdash_! x: \tau_1 \land \tau_2}
+      {\Gamma \vdash_! x: \tau_2}\and
+    \inferrule*[right=Fun-I-!]
+      {\Gamma, x: \tau \vdash e: \rho \and x \not\in fv(\tau)}
+      {\Gamma \vdash_! \lambda(x:\tau).e : \TDepArr{x}{\tau}{\rho}} \and
+    \inferrule*[right=Record-I-!]
+      {\Gamma, x: \tau \vdash d: \tau}
+      {\Gamma \vdash_! \nu(x:\tau)d : \mu(x:\tau)}
+  \end{mathpar}
+  \caption{Precise value and variable typing}
+\end{figure}
+
+\section{Invertible Typing}\label{appendix:invertible}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Var-\#\#]{\Gamma \vdash_! x: \tau}{\Gamma \vdash_{\#\#} x: \tau}\and
+    \inferrule*[right=Val-\#\#]
+      { \Gamma \invdash x: \objtyp{val}{\ell}{\tau} \and
+        \Gamma \vdash_\# \tau \le \rho : *}
+      { \Gamma \invdash x: \objtyp{val}{\ell}{\rho} } \and
+    \inferrule*[right=Type-\#\#]
+      { \Gamma \invdash x: \objtyp{type}{M}{J} \and
+        \Gamma \vdash_\# J \le K}
+      { \Gamma \invdash x: \objtyp{type}{M}{K} } \and
+    \inferrule*[right=Fun-\#\#]
+      { \Gamma \invdash x: \TDepArr{z}{S}{T} \and
+        \Gamma \vdash_\# S' \le S : J \and
+        \Gamma, z: S' \vdash_\# T \le T' : K }
+      { \Gamma \invdash x : \TDepArr{z}{S'}{T'} } \and
+    \inferrule*[right=Intersect-\#\#]
+      { \Gamma \invdash x: A \and \Gamma \invdash x: B }
+      { \Gamma \invdash x: A \land B } \and
+    \inferrule*[right=Sel-\#\#]
+      { \Gamma \invdash x: A \and
+        \Gamma \vdash_! z : \objtyp{type}{M}{\interval{A}{A}} }
+      { \Gamma \invdash x : z.M } \and
+    \inferrule*[right=Rec-I-\#\#]
+      { \Gamma \invdash x: \tau }
+      { \Gamma \invdash x: \mu(x: \tau) } \and
+    \inferrule*[right=Top-\#\#]
+      { \Gamma \invdash x: \tau }
+      { \Gamma \invdash x: \top }
+  \end{mathpar}
+  \caption{Invertible value and variable typing}
+\end{figure}
+
+\section{Auxiliary Lemmas}
+
+\begin{lemma}[Tight to invertible typing]
+  For inert contexts $\Gamma$, $\Gamma \vdash_\# x: \tau$ implies
+  $\Gamma \invdash x: \tau$, and for all values $v$, $\Gamma \vdash_\# v: \tau$
+  implies $\Gamma \invdash v: \tau$.
+\end{lemma}
+\begin{proof}
+  By straightforward induction on $\Gamma \vdash_\# x: \tau$ and $\Gamma
+  \vdash_\# v: \tau$. \textcolor{red}{This is formalized in Agda.}
+\end{proof}
+
+\section{$\DOTw{}$ Operational Semantics}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Term]
+      {t \mapsto t'}
+      {E[t] \mapsto E[t']} \\
+    \inferrule*[right=Apply]
+      {v = \lambda(z: \tau).t}
+      {\termlet{x}{v}{E[x\ y]} \mapsto \termlet{x}{v}{E[\subst{t}{y}{z}]}} \and
+    \inferrule*[right=Project]
+      {v = \nu(x:\tau)...\objval{val}{\ell}{t}}
+      {\termlet{x}{v}{E[x.\ell]} \mapsto \termlet{x}{v}{E[t]}} \\
+    \inferrule*[right=Let-Var]
+      {\strut}
+      {\termlet{x}{y}{t} \mapsto \subst{t}{y}{x}} \and
+    \inferrule*[right=Let-Let]
+      {\strut}
+      {\termlet{x}{(\termlet{y}{e}{t'})}{t} \mapsto \termlet{y}{e}{\termlet{x}{t'}{t}}}
+  \end{mathpar}
+  \caption{$\DOTw$ Operational Semantics (\citet{amin2016})}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{mathpar}
+    \inferrule*[right=Apply]
+      {E\text{ contains the binding }\envlet{x}{\lambda(z:\tau).t}}
+      {E[x\ y] \mapsto E[\subst{t}{y}{z}]} \and
+    \inferrule*[right=Project]
+      {E\text{ contains the binding }\envlet{x}{\nu(x: \tau)...\objval{val}{\ell}{t}}}
+      {E[x.\ell] \mapsto E[t]} \\
+    \inferrule*[right=Let-Var]
+      {\strut}
+      {E[\termlet{x}{[y]}{t}] \mapsto E[\subst{t}{y}{x}]} \and
+    \inferrule*[right=Let-Let]
+      {\strut}
+      {E[\termlet{x}{[\termlet{y}{e}{t'}]}{t}] \mapsto E[\termlet{y}{e}{\termlet{x}{t'}{t}}]}
+  \end{mathpar}
+  \caption{$\DOTw$ Operational Semantics with inlined \textsc{Term} (\citet{rapoport2017})}
+\end{figure}
+
+\end{document}
